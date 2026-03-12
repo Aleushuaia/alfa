@@ -1,0 +1,38 @@
+# ── Git ──────────────────────────────────────────────────
+.git
+.gitignore
+.gitattributes
+
+# ── Docs / IDE ───────────────────────────────────────────
+*.md
+.editorconfig
+.phpunit*
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.nova/
+
+# ── Node ─────────────────────────────────────────────────
+node_modules/
+
+# ── Tests ────────────────────────────────────────────────
+tests/
+phpunit.xml
+
+# ── Dev env ──────────────────────────────────────────────
+.env
+.env.backup
+.env.*.backup
+Homestead.*
+docker-compose.override.yml
+
+# ── Build artefacts (re-generados dentro del container) ──
+/public/hot
+/storage/*.key
+/storage/pail
+/storage/logs/*.log
+
+# ── CI ───────────────────────────────────────────────────
+.github/
+.travis.yml

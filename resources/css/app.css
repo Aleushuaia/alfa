@@ -1,0 +1,45 @@
+/*
+ * SAE Kayen Dashboard — Estilos principales
+ * Compilados por Vite + AdminLTE 4
+ */
+
+/* AdminLTE 4 y dependencias */
+@import 'admin-lte/dist/css/adminlte.min.css';
+@import '@fortawesome/fontawesome-free/css/all.min.css';
+@import 'overlayscrollbars/overlayscrollbars.css';
+
+/* Personalizaciones del dashboard */
+:root {
+    --sae-primary:   #0d6efd;
+    --sae-secondary: #6c757d;
+    --sae-success:   #198754;
+    --sae-danger:    #dc3545;
+    --sae-warning:   #ffc107;
+    --sae-info:      #0dcaf0;
+}
+
+.card-widget {
+    border-radius: .5rem;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    transition: transform .2s, box-shadow .2s;
+}
+.card-widget:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0,0,0,.14);
+}
+
+.badge-trend-up   { color: var(--sae-success); }
+.badge-trend-down { color: var(--sae-danger); }
+
+/* Timeline actividad */
+.timeline-item { border-left: 2px solid var(--sae-primary); padding-left: 1rem; }
+.timeline-item + .timeline-item { margin-top: 1rem; }
+.timeline-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--sae-primary);
+    margin-left: -1.4rem;
+    margin-top: .3rem;
+    float: left;
+}

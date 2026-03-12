@@ -1,0 +1,139 @@
+Listado de comandos Artisan principales usados y útiles en este proyecto
+
+Notas generales:
+- Ejecutar dentro del contenedor (recomendado):
+  docker exec -it sae_dashboard php artisan <comando>
+- Ejecutar localmente si tiene PHP/Composer instalados:
+  php artisan <comando>
+
+1) Generar APP key
+- Descripción: Crea la APP_KEY en el .env
+- Comando:
+  php artisan key:generate --force
+- En Docker:
+  docker exec -it sae_dashboard php artisan key:generate --force
+
+2) Cachear configuración, rutas y vistas (producción)
+- Descripción: Optimiza lectura de config/rutas/vistas para producción
+- Comandos:
+  php artisan config:cache
+  php artisan route:cache
+  php artisan view:cache
+- En Docker:
+  docker exec -it sae_dashboard php artisan config:cache
+  docker exec -it sae_dashboard php artisan route:cache
+  docker exec -it sae_dashboard php artisan view:cache
+
+3) Limpiar caches (desarrollo / antes de deployar)
+- Descripción: Limpia caches para forzar recarga de cambios
+- Comandos:
+  php artisan cache:clear
+  php artisan config:clear
+  php artisan route:clear
+  php artisan view:clear
+  php artisan optimize:clear
+- En Docker:
+  docker exec -it sae_dashboard php artisan cache:clear
+  docker exec -it sae_dashboard php artisan config:clear
+
+4) Optimize
+- Descripción: Compila clases optimizadas (opcional en producción)
+- Comando:
+  php artisan optimize
+- En Docker:
+  docker exec -it sae_dashboard php artisan optimize
+
+5) Migraciones y seeders (cuando haya BD y tablas)
+- Descripción: Ejecutar migraciones y cargar datos de prueba
+- Comandos:
+  php artisan migrate
+  php artisan migrate --force    # forzar en producción
+  php artisan migrate:fresh --seed
+  php artisan db:seed
+- En Docker:
+  docker exec -it sae_dashboard php artisan migrate --force
+
+6) Crear artefactos (make:*)
+- Descripción: Generadores de Laravel (Controllers, Providers, etc.)
+- Ejemplos:
+  php artisan make:controller DashboardController
+  php artisan make:provider DashboardServiceProvider
+  php artisan make:seeder DemoDataSeeder
+- En Docker:
+  docker exec -it sae_dashboard php artisan make:controller DashboardController
+
+7) Enlaces y almacenamiento público
+- Descripción: Crear enlace simbólico a storage para archivos públicos
+- Comando:
+  php artisan storage:link
+- En Docker:
+  docker exec -it sae_dashboard php artisan storage:link
+
+8) Cola de trabajo
+- Descripción: Procesar jobs en background
+- Comandos:
+  php artisan queue:work --tries=3
+  php artisan queue:listen
+- En Docker:
+  docker exec -it sae_dashboard php artisan queue:work --tries=3
+
+9) Scheduler (programar tareas)
+- Descripción: Ejecutar el scheduler (normalmente desde cron del host)
+- Comando:
+  php artisan schedule:run
+- Ejemplo crontab (host):
+  * * * * * docker exec sae_dashboard php artisan schedule:run >> /var/log/cron.log 2>&1
+
+10) Vendor publish (publicar assets / config de paquetes)
+- Descripción: Publica archivos de paquetes
+- Comando:
+  php artisan vendor:publish --provider="Proveedor\Nombre" --tag=tag
+
+11) Ver estado de migraciones
+- Comando:
+  php artisan migrate:status
+
+12) Información de la aplicación
+- Comando:
+  php artisan --version
+  php artisan list
+
+13) Comandos útiles de diagnóstico
+- db:seed --class=DemoDataSeeder
+- php artisan tinker
+
+---
+Sugerencias rápidas:
+- Para ejecutar cualquier comando Artisan dentro del contenedor use el prefijo:
+  docker exec -it sae_dashboard php artisan <comando>
+- En entornos CI/CD donde no hay interacción use `--force` para migraciones o generación de claves si es necesario.
+
+Fin del listado.
+
+---
+Scripts para refrescar caches automáticamente
+--------------------------------------------------
+Se incluyen dos scripts en `scripts/` que intentan ejecutar los comandos
+dentro del contenedor `app` (Docker Compose) si está disponible, o
+en el host si tienes `php` y `composer` instalados.
+
+Linux/macOS (bash):
+  ./scripts/refresh.sh [service]
+  - `service` (opcional) nombre del servicio en docker-compose (por defecto: `app`).
+
+Windows (PowerShell):
+  .\scripts\refresh.ps1 [-Service app]
+
+Ambos scripts ejecutan:
+  php artisan optimize:clear
+  php artisan cache:clear
+  php artisan config:clear
+  php artisan route:clear
+  php artisan view:clear
+  composer dump-autoload -o
+
+Ejemplo (forzar dentro del contenedor):
+  docker compose exec app php artisan optimize:clear
+
+--------------------------------------------------
+Fin del listado.

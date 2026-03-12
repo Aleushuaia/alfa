@@ -1,0 +1,98 @@
+/* =============================================================================
+   ingresados-fuero.css — Estilos de la vista Expedientes por Fuero
+   Scoped bajo .fuero-view para evitar colisiones con el layout.
+   ============================================================================= */
+
+/* ── Variables locales ──────────────────────────────────────────────────────── */
+.fuero-view {
+    --color-primary:   #2c3e50;
+    --color-secondary: #34495e;
+    --color-accent:    #c0392b;
+    --color-success:   #27ae60;
+    --color-warning:   #f39c12;
+    --color-info:      #2980b9;
+}
+
+/* ── Título de sección ──────────────────────────────────────────────────────── */
+.fuero-view .section-title {
+    color: var(--color-primary);
+    font-weight: 600;
+    margin-bottom: 1rem;
+    padding-bottom: .5rem;
+    border-bottom: 2px solid var(--color-accent);
+    display: inline-block;
+}
+
+/* ── Tarjetas KPI estilo borde-izquierdo ────────────────────────────────────── */
+.fuero-view .stat-card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 15px rgba(0,0,0,.08);
+    border-left: 4px solid;
+    padding: 1.5rem;
+    background: #fff;
+    transition: transform .2s ease, box-shadow .2s ease;
+}
+.fuero-view .stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 25px rgba(0,0,0,.12);
+}
+.fuero-view .stat-card.organismo-1 { border-left-color: var(--color-accent);  }
+.fuero-view .stat-card.organismo-2 { border-left-color: var(--color-success); }
+.fuero-view .stat-card.organismo-3 { border-left-color: var(--color-warning); }
+.fuero-view .stat-card.organismo-4 { border-left-color: var(--color-info);    }
+.fuero-view .stat-card.organismo-5 { border-left-color: #8e44ad; }
+.fuero-view .stat-card.organismo-6 { border-left-color: #16a085; }
+.fuero-view .stat-card.organismo-7 { border-left-color: #e67e22; }
+.fuero-view .stat-card.organismo-8 { border-left-color: #2c3e50; }
+
+.fuero-view .stat-number {
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1;
+}
+.fuero-view .stat-label {
+    color: #6c757d;
+    font-size: .875rem;
+    margin-top: .5rem;
+}
+
+/* ── Cards genéricas de la vista ────────────────────────────────────────────── */
+.fuero-view .card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 15px rgba(0,0,0,.08);
+    transition: transform .2s ease, box-shadow .2s ease;
+}
+.fuero-view .card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 25px rgba(0,0,0,.12);
+}
+.fuero-view .card-header {
+    border-radius: 12px 12px 0 0 !important;
+    font-weight: 600;
+    border-bottom: none;
+}
+
+/* ── Contenedor de gráfico ──────────────────────────────────────────────────── */
+.fuero-view .chart-container {
+    position: relative;
+    height: 300px;
+}
+
+/* ── Badge total ────────────────────────────────────────────────────────────── */
+.fuero-view .badge-total {
+    font-size: .75rem;
+    padding: .35rem .65rem;
+}
+
+/* ── Bloque mini-stat (4 columnas dentro de cada org card) ─────────────────── */
+.fuero-view .mini-stat-block {
+    text-align: center;
+    padding: 1rem .5rem;
+    background: #f8f9fa;
+    border-radius: 10px;
+}
+.fuero-view .mini-stat-block .display-5 {
+    font-size: 1.9rem;
+}

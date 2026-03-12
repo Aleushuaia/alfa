@@ -1,0 +1,22 @@
+{
+    "$schema": "https://www.schemastore.org/package.json",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build": "vite build",
+        "dev": "vite"
+    },
+    "dependencies": {
+        "@fortawesome/fontawesome-free": "^6.7.2",
+        "admin-lte": "^4.0.0-rc5",
+        "alpinejs": "^3.14.8",
+        "apexcharts": "^4.7.0",
+        "bootstrap": "^5.3.5",
+        "overlayscrollbars": "^2.10.1"
+    },
+    "devDependencies": {
+        "axios": "^1.11.0",
+        "laravel-vite-plugin": "^2.0.0",
+        "vite": "^7.0.7"
+    }
+}

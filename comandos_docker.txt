@@ -1,0 +1,17 @@
+docker --version — Muestra la versión de Docker
+docker compose version — Muestra la versión de Docker Compose
+docker pull <imagen> — Descarga una imagen desde Docker Hub
+docker run --rm -v "<host>:/app" -w /app composer:2 create-project laravel/laravel . --prefer-dist --no-interaction — Scaffold de Laravel con Composer (contenedor temporal)
+docker run --rm -v "<host>:/app" -w /app node:20-alpine sh -c "npm install --no-audit --strict-ssl false" — Instala dependencias Node dentro de un contenedor
+docker run --rm -v "<host>:/app" -w /app node:20-alpine npm run build — Compila assets con Vite en contenedor
+docker compose build — Construye las imágenes desde el Dockerfile
+docker compose build --no-cache — Reconstruye imágenes sin usar cache
+docker compose up -d — Levanta los servicios en segundo plano
+docker compose logs -f app — Sigue los logs del servicio `app`
+docker compose down — Detiene y elimina contenedores
+docker compose down -v — Detiene contenedores y elimina volúmenes
+docker exec -it sae_dashboard sh — Abre shell interactivo en el contenedor `sae_dashboard`
+docker exec -it sae_dashboard php artisan <comando> — Ejecuta un comando Artisan dentro del contenedor
+docker run --rm -v "<host>:/app" -w /app php:8.3-alpine sh -c "php artisan key:generate --force" — Ejecuta Artisan en contenedor temporal (ej.: generar APP_KEY)
+
+Start-Process "C:\Program Files\Docker\Docker\Docker Desktop.exe"

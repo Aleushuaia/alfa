@@ -1,0 +1,65 @@
+1. git init — Inicializa un repositorio Git local en el directorio actual.
+
+2. git clone <url> — Clona un repositorio remoto a una carpeta local.
+
+3. git status — Muestra el estado de archivos (modificados, staged, sin trackear).
+
+4. git add <file|.> — Añade archivos al área de preparación (staging) para el próximo commit.
+
+5. git commit -m "mensaje" — Crea un commit con los cambios staged y mensaje descriptivo.
+
+6. git commit --amend -m "nuevo mensaje" — Modifica el último commit (mensaje o contenido).
+
+7. git log — Muestra el historial de commits (últimos commits en orden cronológico inverso).
+
+8. git diff — Muestra diferencias entre archivos/modificaciones no staged o entre commits.
+
+9. git branch — Lista ramas locales; con nombre crea una nueva rama: `git branch nombre`.
+
+10. git checkout <rama> — Cambia a otra rama (antiguo comando; `git switch` recomendado).
+
+11. git switch <rama> — Cambia a la rama indicada (más seguro y semántico que checkout).
+
+12. git checkout -b <rama> — Crea y cambia a una nueva rama en un solo paso.
+
+13. git merge <rama> — Fusiona la rama indicada en la rama actual (merge commit o fast-forward).
+
+14. git rebase <base> — Aplica commits de la rama actual encima de otra base (reordenar historial).
+
+15. git fetch — Trae referencias y objetos del remoto sin fusionarlos automáticamente.
+
+16. git pull — `git fetch` + `git merge` (actualiza la rama local con cambios remotos).
+
+17. git push — Envía commits locales a un repositorio remoto (ej: `git push origin main`).
+
+18. git remote -v — Lista remotos configurados y sus URLs; `git remote add origin <url>` para agregar.
+
+19. git stash — Guarda temporalmente cambios no commiteados y deja el working tree limpio.
+
+20. git stash pop — Aplica y elimina el stash más reciente.
+
+21. git tag <nombre> — Crea una etiqueta (tag) en el commit actual; `-a` para anotado.
+
+22. git reset --soft <commit> — Mueve HEAD a commit sin tocar el index ni working tree.
+
+23. git reset --mixed <commit> — (por defecto) Resetea index a commit pero mantiene cambios en working tree.
+
+24. git reset --hard <commit> — Mueve HEAD y descarta index y working tree (irrecuperable sin reflog).
+
+25. git revert <commit> — Crea un nuevo commit que revierte los cambios de un commit anterior.
+
+26. git cherry-pick <commit> — Aplica un commit específico (de otra rama) en la rama actual.
+
+27. git bisect start/ bad/good — Búsqueda binaria para encontrar el commit que introdujo un bug.
+
+28. git clean -fd — Elimina archivos/directorios no versionados (usar con precaución).
+
+29. git blame <file> — Muestra línea por línea quién hizo cada cambio y en qué commit.
+
+30. git show <commit> — Muestra detalles de un commit concreto (diff, autor, mensaje).
+
+Consejos rápidos:
+- Haz commits pequeños y con mensajes claros.
+- Usa ramas para aislar features/fixes (`feature/`, `fix/`, `hotfix/`).
+- Antes de `git push`, suele ser buena idea `git pull --rebase` para mantener historial lineal.
+- Si dudas, usa `git status` y `git log --oneline --graph --decorate` para entender el estado.

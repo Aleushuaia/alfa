@@ -1,0 +1,92 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: sae-kayen-dashboard:latest
+    container_name: sae_dashboard
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    volumes:
+      # Bind-mount del código fuente: los cambios en el host se reflejan
+      # inmediatamente dentro del contenedor sin necesidad de rebuild.
+      - ./:/var/www
+      # Volumen nombrado para preservar vendor/ instalado en la imagen
+      # (evita que el bind-mount lo sobrescriba con el vendor/ local vacío)
+      - vendor:/var/www/vendor
+      # Storage persistente (logs, cache de framework, sesiones)
+      - dashboard_storage:/var/www/storage
+    environment:
+      APP_NAME: "${APP_NAME:-SAE Kayen Dashboard}"
+      APP_ENV: "${APP_ENV:-production}"
+      APP_KEY: "${APP_KEY}"
+      APP_DEBUG: "${APP_DEBUG:-false}"
+      APP_URL: "${APP_URL:-http://localhost:8080}"
+
+      # Cache & Queue
+      CACHE_DRIVER: "${CACHE_DRIVER:-file}"
+      QUEUE_CONNECTION: "${QUEUE_CONNECTION:-sync}"
+      SESSION_DRIVER: "${SESSION_DRIVER:-file}"
+
+      # ----------------------------------------------------------------
+      # Conexión SAE Kayen (MySQL/MariaDB principal)
+      # ----------------------------------------------------------------
+      DB_SAE_CONNECTION: "${DB_SAE_CONNECTION:-mysql}"
+      DB_SAE_HOST: "${DB_SAE_HOST:-}"
+      DB_SAE_PORT: "${DB_SAE_PORT:-3306}"
+      DB_SAE_DATABASE: "${DB_SAE_DATABASE:-}"
+      DB_SAE_USERNAME: "${DB_SAE_USERNAME:-}"
+      DB_SAE_PASSWORD: "${DB_SAE_PASSWORD:-}"
+      DB_SAE_CHARSET: "${DB_SAE_CHARSET:-utf8mb4}"
+      DB_SAE_COLLATION: "${DB_SAE_COLLATION:-utf8mb4_unicode_ci}"
+
+      # ----------------------------------------------------------------
+      # Conexión PostgreSQL alternativa (opcional)
+      # ----------------------------------------------------------------
+      DB_PG_HOST: "${DB_PG_HOST:-}"
+      DB_PG_PORT: "${DB_PG_PORT:-5432}"
+      DB_PG_DATABASE: "${DB_PG_DATABASE:-}"
+      DB_PG_USERNAME: "${DB_PG_USERNAME:-}"
+      DB_PG_PASSWORD: "${DB_PG_PASSWORD:-}"
+      DB_PG_SCHEMA: "${DB_PG_SCHEMA:-public}"
+
+      # ----------------------------------------------------------------
+      # Modo demo (sin BD real)
+      # ----------------------------------------------------------------
+      DASHBOARD_DEMO: "${DASHBOARD_DEMO:-true}"
+
+      # ----------------------------------------------------------------
+      # Opcache — en desarrollo (APP_ENV != production) el entrypoint
+      # escribe un ini que habilita validate_timestamps y revalidate_freq=0
+      # para que los cambios en código se reflejen sin reiniciar php-fpm.
+      # ----------------------------------------------------------------
+      PHP_OPCACHE_DEV: "${PHP_OPCACHE_DEV:-true}"
+
+    networks:
+      - sae_network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - nlp
+
+  nlp:
+    build:
+      context: ./nlp_service
+      dockerfile: Dockerfile
+    image: sae-kayen-nlp:latest
+    container_name: sae_nlp
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    networks:
+      - sae_network
+
+volumes:
+  dashboard_storage:
+  vendor:
+  node_modules:
+
+networks:
+  sae_network:
+    driver: bridge
