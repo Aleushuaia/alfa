@@ -52,27 +52,69 @@ class PdfAnalyzerController extends Controller
         // 4. Guardar el HTML etiquetado en sesión para reutilizarlo en anonimización/exportación
         session(['pdf_analyzed_html' => $result['html']]);
 
-        // Prepare grouped entities: group by text + label and count occurrences
+        // Prepare grouped entities: perform normalization to detect duplicates/variants
         $entities = $result['entities'] ?? [];
         $grouped = [];
+
+        // helper to normalize text for grouping
+        $normalize = function (string $s) {
+            $s = mb_strtolower(trim($s));
+            // remove accents
+            $s = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $s) ?: $s;
+            // remove punctuation except spaces and alnum
+            $s = preg_replace('/[^a-z0-9\s]/i', ' ', $s);
+            // collapse whitespace
+            $s = preg_replace('/\s+/', ' ', $s);
+            return trim($s);
+        };
+
+        // Map normalized key => grouped entry index key
+        $normMap = [];
         foreach ($entities as $ent) {
             $text  = trim($ent['text'] ?? '');
             $label = $ent['label'] ?? '';
             if ($text === '') continue;
-            $key = $text . '||' . $label;
-            if (!isset($grouped[$key])) {
-                $grouped[$key] = [
-                    'text'      => $text,
+
+            $norm = $normalize($text) . '||' . $label;
+
+            if (!isset($normMap[$norm])) {
+                // create new grouped item
+                $grouped[] = [
+                    'text'      => $text,             // representative display text (first seen)
                     'label'     => $label,
                     'count'     => 0,
                     'positions' => [],
+                    'variants'  => [],               // list of visible variant texts
+                    'variant_counts' => [],
                 ];
+                $normMap[$norm] = count($grouped) - 1;
             }
-            $grouped[$key]['count']++;
-            $grouped[$key]['positions'][] = [
+
+            $idx = $normMap[$norm];
+            $grouped[$idx]['count']++;
+            $grouped[$idx]['positions'][] = [
                 'start' => $ent['start'] ?? null,
                 'end'   => $ent['end'] ?? null,
             ];
+
+            // track variants and their counts
+            if (!in_array($text, $grouped[$idx]['variants'], true)) {
+                $grouped[$idx]['variants'][] = $text;
+                $grouped[$idx]['variant_counts'][$text] = 0;
+            }
+            $grouped[$idx]['variant_counts'][$text]++;
+            // choose a better representative text: the variant with highest count or longer length
+            $best = $grouped[$idx]['text'];
+            $bestCount = $grouped[$idx]['variant_counts'][$best] ?? 0;
+            $thisCount = $grouped[$idx]['variant_counts'][$text];
+            if ($thisCount > $bestCount || ( $thisCount === $bestCount && mb_strlen($text) > mb_strlen($best) )) {
+                $grouped[$idx]['text'] = $text;
+            }
+        }
+
+        // cleanup: remove internal variant_counts before returning
+        foreach ($grouped as &$g) {
+            unset($g['variant_counts']);
         }
 
         return view('pdf.analyzer', [

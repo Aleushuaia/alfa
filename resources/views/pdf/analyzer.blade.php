@@ -297,7 +297,7 @@
                                 @endif
 
                                 <tr class="entity-row"
-                                    data-entity-text="{{ addslashes($item['text']) }}"
+                                    data-entity-texts="{{ e(json_encode($item['variants'] ?? [$item['text']])) }}"
                                     data-label="{{ $label }}">
                                     <td class="fw-medium">
                                                      <a href="#" class="entity-jump-link">{{ $item['text'] }}</a>
@@ -500,11 +500,38 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Helper: encontrar todos los spans de entidad cuyo texto coincida
-    function findEntitySpans(entityText) {
+    function findEntitySpans(entityKey) {
         const editor = document.getElementById('editor-container');
         if (!editor) return [];
-        return Array.from(editor.querySelectorAll('.entity'))
-            .filter(s => getSpanOwnText(s).trim() === entityText.trim());
+        const spans = Array.from(editor.querySelectorAll('.entity'));
+
+        // If entityKey is an array of variants, match any
+        if (Array.isArray(entityKey)) {
+            const norms = entityKey.map(v => (v || '').trim());
+            return spans.filter(s => norms.includes(getSpanOwnText(s).trim()));
+        }
+
+        // otherwise treat as single string
+        const key = (entityKey || '').trim();
+        return spans.filter(s => getSpanOwnText(s).trim() === key);
+    }
+
+    // Helper: given a span, find the grouped row variants that include its visible text
+    function findVariantsForSpan(span) {
+        if (!span) return [];
+        const text = getSpanOwnText(span).trim();
+        const rows = Array.from(document.querySelectorAll('.entity-row'));
+        for (const row of rows) {
+            const raw = row.dataset.entityTexts;
+            if (!raw) continue;
+            try {
+                const variants = JSON.parse(raw);
+                if (variants && variants.map(v => v.trim()).includes(text)) return variants;
+            } catch (e) {
+                // ignore parse errors
+            }
+        }
+        return [text];
     }
 
     // Helper: deshabilitar fila visualmente
@@ -516,9 +543,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // 3. Botón IGNORAR en la tabla: reemplaza cada ocurrencia con texto plano (no tachado)
     document.querySelectorAll('.btn-ignore-entity').forEach(btn => {
         btn.addEventListener('click', () => {
-            const row        = btn.closest('.entity-row');
-            const entityText = row.dataset.entityText;
-            findEntitySpans(entityText).forEach(span => {
+            const row = btn.closest('.entity-row');
+            const raw = row.dataset.entityTexts;
+            let variants = [];
+            try { variants = JSON.parse(raw); } catch (e) { variants = [row.dataset.entityText]; }
+            findEntitySpans(variants).forEach(span => {
                 const plain = document.createTextNode(getSpanOwnText(span));
                 span.replaceWith(plain);
             });
@@ -590,8 +619,9 @@ document.addEventListener('DOMContentLoaded', () => {
         link.addEventListener('click', (e) => {
             e.preventDefault();
             const row = link.closest('.entity-row');
-            const entityText = row?.dataset?.entityText || link.textContent.trim();
-            const spans = findEntitySpans(entityText);
+            let variants = [];
+            try { variants = JSON.parse(row?.dataset?.entityTexts || '[]'); } catch (err) { variants = [link.textContent.trim()]; }
+            const spans = findEntitySpans(variants);
             if (!spans || spans.length === 0) {
                 link.classList.add('text-muted');
                 setTimeout(() => link.classList.remove('text-muted'), 900);
@@ -611,7 +641,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     editor.focus();
                     placeCaretAfter(target);
                 }, 10);
-                flashSpan(target, entityText);
+                flashSpan(target, variants);
             }
         });
     });
@@ -624,9 +654,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const span = e.target.closest('.entity');
             if (!span) return;
             span.classList.add('entity-hover');
-            // Keep existing occurrence tooltip
-            const entityText = getSpanOwnText(span).trim();
-            const spans = findEntitySpans(entityText);
+            // compute variants for this span and show occurrence tooltip relative to the group
+            const variants = findVariantsForSpan(span);
+            const spans = findEntitySpans(variants);
             const idx = spans.indexOf(span);
             if (idx >= 0) span.setAttribute('title', (idx + 1) + '/' + spans.length);
         });
@@ -642,13 +672,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const span = e.target.closest('.entity');
             if (!span) return;
 
-            const entityText = getSpanOwnText(span).trim();
-            const spans = findEntitySpans(entityText);
+            const variants = findVariantsForSpan(span);
+            const spans = findEntitySpans(variants);
             const idx = spans.indexOf(span);
             if (idx >= 0 && idx < spans.length - 1) {
                 const next = spans[idx + 1];
                 scrollToTargetSpan(next);
-                flashSpan(next, entityText);
+                flashSpan(next, variants);
             } else if (idx === spans.length - 1) {
                 // Last occurrence: brief pulse to indicate end
                 span.style.transition = 'box-shadow 120ms';
@@ -661,26 +691,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 7. Dynamic hover tooltip inside editor: show occurrence index / total
-    if (editor) {
-        editor.addEventListener('mouseover', (e) => {
-            const span = e.target.closest('.entity');
-            if (!span) return;
-            const entityText = getSpanOwnText(span).trim();
-            const spans = findEntitySpans(entityText);
-            const idx = spans.indexOf(span);
-            if (idx >= 0) {
-                span.setAttribute('title', (idx + 1) + '/' + spans.length);
-            }
-        });
-
-        editor.addEventListener('mouseout', (e) => {
-            const span = e.target.closest('.entity');
-            if (!span) return;
-            // remove title so table/other logic doesn't show stale tooltips
-            span.removeAttribute('title');
-        });
-    }
+    // Tooltip behavior is handled in the hover/click handlers above (group-aware)
 
 });
 </script>
