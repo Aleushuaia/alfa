@@ -7,7 +7,8 @@
     <title>@yield('title', config('app.name', 'SAE Kayen'))</title>
 
     {{-- Favicon --}}
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'></text></svg>">
+    <link rel="icon" href="{{ asset('images/2d2.png') }}" sizes="100x100" type="image/png">
+    <link rel="apple-touch-icon" href="{{ asset('images/2d2.png') }}">
 
     {{-- Google Fonts --}}
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -55,11 +56,7 @@
     </main>
 
     <footer id="page-footer">
-        <span>
-            <strong>SAE Kayen</strong>  Sistema de Actuaciones y Expedientes
-            &middot; Poder Judicial de Tierra del Fuego
-        </span>
-        <span>&copy; {{ date('Y') }} Kayen. Todos los derechos reservados.</span>
+        <span>&copy; {{ date('Y') }} Jur-2d2. Todos los derechos reservados.</span>
     </footer>
 </div>
 

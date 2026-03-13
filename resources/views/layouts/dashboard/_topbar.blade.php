@@ -13,7 +13,7 @@
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
                 <li class="breadcrumb-item">
-                    <a href="{{ route('dashboard.v2') }}"
+                    <a href="{{ route('pdf-analyzer.form') }}"
                        class="text-decoration-none"
                        style="color:#6366f1">Inicio</a>
                 </li>

@@ -4,14 +4,14 @@
     Incluir con: @include('layouts.dashboard._sidebar')
 --}}
 <aside id="sidebar">
-    <a href="{{ route('dashboard.v2') }}" class="sidebar-brand">
+    <a href="{{ route('pdf-analyzer.form') }}" class="sidebar-brand d-flex align-items-center gap-2">
         <div class="brand-icon">
-            <i class="fas fa-balance-scale"></i>
+            <img src="{{ asset('images/2d2.png') }}" alt="Jur-2d2" class="brand-image" style="width:100px;height:100px;object-fit:contain;">
         </div>
-        <div class="brand-text">
-            <strong>Dashboard</strong>
-            <small>Poder Judicial · TDF</small>
-        </div>
+            <div class="brand-text" style="margin-left:20px;display:flex;flex-direction:column;justify-content:center;">
+                <strong style="display:block">Jur-2d2</strong>
+                <small style="display:block">Colaborador Inteligente</small>
+            </div>
     </a>
 
     <nav class="sidebar-nav py-2">

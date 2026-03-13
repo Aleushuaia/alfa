@@ -49,7 +49,12 @@
         cursor: pointer;
     }
     .entity-menu button:hover { background: #f5f5f5; }
-    .entity.ignored { opacity: .35; text-decoration: line-through; }
+
+    /* ── Fila deshabilitada en tabla de entidades ────────── */
+    .entity-row-disabled td { opacity: .38; }
+    .entity-row-disabled input,
+    .entity-row-disabled button { pointer-events: none !important; }
+    .entity-row-disabled { background: #f8f8f8 !important; }
 
     /* ── Editor ─────────────────────────────────────────── */
     #editor-container {
@@ -72,6 +77,38 @@
         border-radius: 3px;
         margin-right: 5px;
         vertical-align: middle;
+    }
+    /* Mantener el panel de texto fijo y hacer la lista de entidades scrollable */
+    .entities-scroll {
+        max-height: 48vh;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    /* Make the entity text look like plain text (no hyperlink hint) */
+    .entity-jump-link {
+        color: inherit;
+        text-decoration: none;
+        cursor: default;
+        font-weight: inherit;
+    }
+    .entity-jump-link:hover { text-decoration: none; }
+
+    /* Strong fluorescent highlight for quick locating */
+    .entity-flash {
+        background: #ccff00 !important;
+        color: #000 !important;
+        box-shadow: 0 0 18px rgba(204,255,0,0.9);
+        border-radius: 4px;
+        padding: 0 3px;
+        transition: box-shadow 120ms ease-in-out;
+    }
+    /* Hover style (separate class so it doesn't collide with programmatic flashes) */
+    .entity-hover {
+        background: #ccff00 !important;
+        color: #000 !important;
+        box-shadow: 0 0 12px rgba(204,255,0,0.85);
+        border-radius: 4px;
+        padding: 0 3px;
     }
 </style>
 @endpush
@@ -181,36 +218,119 @@
         @if(isset($groupedEntities) && count($groupedEntities))
         <div class="card shadow-sm mt-3">
             <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
-                <div><i class="fas fa-list-ul me-2"></i>Entidades detectadas (agrupadas)</div>
-                <span class="badge bg-secondary ms-1">{{ count($groupedEntities) }} tipos</span>
+                <div><i class="fas fa-list-ul me-2"></i>Entidades detectadas <span class="fw-normal text-muted">(agrupadas)</span></div>
+                <span class="badge bg-secondary">{{ count($groupedEntities) }} entidades únicas</span>
             </div>
-            <div class="card-body p-2">
+            <div class="card-body p-2 entities-scroll">
                 <div class="table-responsive">
-                    <table class="table table-sm table-hover mb-0" style="font-size:.83rem;">
+                    <table class="table table-sm table-hover align-middle mb-0" style="font-size:.82rem;">
                         <thead class="table-light">
                             <tr>
-                                <th>Texto</th>
+                                <th>Texto detectado</th>
                                 <th>Tipo</th>
-                                <th>Veces</th>
-                                <th>Posiciones (inicio-fin)</th>
+                                <th class="text-center">Veces</th>
+                                <th>Etiqueta a usar</th>
+                                <th class="text-center">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach($groupedEntities as $g)
-                            <tr>
-                                <td>{{ $g['text'] }}</td>
-                                <td><span class="badge" style="background:var(--entity-{{ strtolower($g['label'] ?? '') }}, #ddd);color:#333">{{ $g['label'] }}</span></td>
-                                <td>{{ $g['count'] }}</td>
-                                <td>
-                                    @foreach($g['positions'] as $p)
-                                        @if($loop->first) @endif
-                                        <small class="text-muted">{{ $p['start'] ?? '-' }}-{{ $p['end'] ?? '-' }}</small>@if(!$loop->last), @endif
-                                    @endforeach
-                                </td>
-                            </tr>
+                            @php
+                                // Map raw labels to Spanish display names (keep in sync with JS LABEL_MAP)
+                                $labelMap = [
+                                    'PER'     => 'PERSONA',
+                                    'PERSON'  => 'PERSONA',
+                                    'ORG'     => 'ORGANIZACIÓN',
+                                    'LOC'     => 'LUGAR',
+                                    'GPE'     => 'LUGAR',
+                                    'DATE'    => 'FECHA',
+                                    'DNI'     => 'DNI',
+                                    'EMAIL'   => 'EMAIL',
+                                    'PHONE'   => 'TELÉFONO',
+                                    'PATENTE' => 'PATENTE',
+                                    'MISC'    => 'OTRO',
+                                ];
+
+                                // Clone and sort using the same order as the legend (Persona, Organización, ...)
+                                $order = [
+                                    'PERSONA',
+                                    'ORGANIZACIÓN',
+                                    'LUGAR',
+                                    'FECHA',
+                                    'DNI',
+                                    'EMAIL',
+                                    'TELÉFONO',
+                                    'OTRO',
+                                ];
+
+                                $entities = $groupedEntities;
+                                usort($entities, function($a, $b) use ($labelMap, $order) {
+                                    $da = $labelMap[$a['label'] ?? ''] ?? ($a['label'] ?? '');
+                                    $db = $labelMap[$b['label'] ?? ''] ?? ($b['label'] ?? '');
+
+                                    $ia = array_search($da, $order, true);
+                                    $ib = array_search($db, $order, true);
+                                    $ia = ($ia === false) ? PHP_INT_MAX : $ia;
+                                    $ib = ($ib === false) ? PHP_INT_MAX : $ib;
+
+                                    if ($ia !== $ib) return $ia <=> $ib;
+
+                                    // Same group order — sort by display name then by text
+                                    $c = strcasecmp($da, $db);
+                                    if ($c === 0) {
+                                        return strcasecmp($a['text'] ?? '', $b['text'] ?? '');
+                                    }
+                                    return $c;
+                                });
+                                $currentLabel = null;
+                            @endphp
+
+                            @foreach($entities as $item)
+                                @php $label = $item['label'] ?? ''; @endphp
+
+                                {{-- Separator row when label/type changes (use Spanish display names) --}}
+                                @php $displayLabel = $labelMap[$label] ?? ($label ?: 'OTROS'); @endphp
+                                @if($displayLabel !== ($currentLabel ? ($labelMap[$currentLabel] ?? $currentLabel) : $currentLabel))
+                                    <tr class="table-secondary">
+                                        <td colspan="5" class="fw-semibold">{{ $displayLabel }}</td>
+                                    </tr>
+                                    @php $currentLabel = $label; @endphp
+                                @endif
+
+                                <tr class="entity-row"
+                                    data-entity-text="{{ addslashes($item['text']) }}"
+                                    data-label="{{ $label }}">
+                                    <td class="fw-medium">
+                                                     <a href="#" class="entity-jump-link">{{ $item['text'] }}</a>
+                                    </td>
+                                    <td>
+                                        <span class="badge rounded-pill"
+                                              style="background:var(--entity-{{ strtolower($label ?? '') }},#ddd);color:#333">
+                                            {{ $label }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-secondary">{{ $item['count'] }}</span>
+                                    </td>
+                                    <td>
+                                        <input type="text"
+                                               class="form-control form-control-sm entity-label-input"
+                                               placeholder="[ETIQUETA]"
+                                               style="min-width:145px;font-size:.8rem;">
+                                    </td>
+                                                    <td class="text-center text-nowrap">
+                                                        <button class="btn btn-sm btn-outline-secondary btn-ignore-entity"
+                                                                title="Ignorar: dejar este texto sin alterar en el documento"
+                                                                data-bs-toggle="tooltip">
+                                                            <i class="fas fa-eye-slash fa-sm"></i>
+                                                        </button>
+                                                    </td>
+                                </tr>
                             @endforeach
                         </tbody>
                     </table>
+                </div>
+                <div class="mt-2 text-muted" style="font-size:.75rem;">
+                    <i class="fas fa-eye-slash me-1"></i>Ignorar en el texto
                 </div>
             </div>
         </div>
@@ -248,11 +368,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    document.addEventListener('click', (e) => {
+    // Show entity menu on right-click (context menu) instead of left click
+    document.addEventListener('contextmenu', (e) => {
         const span = e.target.closest('.entity');
         closeActiveMenu();
-
         if (!span) return;
+        e.preventDefault();
 
         // Crear o reutilizar menú
         let menu = span.querySelector('.entity-menu');
@@ -260,9 +381,7 @@ document.addEventListener('DOMContentLoaded', () => {
             menu = document.createElement('div');
             menu.className = 'entity-menu';
             menu.innerHTML = `
-                <button data-action="approve">✅ Aprobar entidad</button>
                 <button data-action="ignore">🚫 Ignorar entidad</button>
-                <button data-action="anonimize">🔒 Anonimizar entidad</button>
             `;
             span.style.position = 'relative';
             span.appendChild(menu);
@@ -272,18 +391,15 @@ document.addEventListener('DOMContentLoaded', () => {
         activeMenu = menu;
         e.stopPropagation();
 
-        // Acciones del menú
+        // Acciones del menú (solo Ignorar)
         menu.querySelectorAll('button').forEach(btn => {
             btn.addEventListener('click', (ev) => {
                 ev.stopPropagation();
                 const action = btn.dataset.action;
-                if (action === 'approve') {
-                    span.style.outline = '2px solid #28a745';
-                } else if (action === 'ignore') {
-                    span.classList.toggle('ignored');
-                } else if (action === 'anonimize') {
-                    const label = span.dataset.label || 'DATO';
-                    span.outerHTML = `[${label.toUpperCase()}]`;
+                if (action === 'ignore') {
+                    // Replace the entity span with plain text so it remains unaltered in the editor
+                    const plain = document.createTextNode(getSpanOwnText(span));
+                    span.replaceWith(plain);
                 }
                 closeActiveMenu();
             }, { once: true });
@@ -342,6 +458,227 @@ document.addEventListener('DOMContentLoaded', () => {
             }).catch(() => {
                 document.getElementById('exportForm').submit();
             });
+        });
+    }
+
+    // ── Tabla de entidades agrupadas: etiquetas automáticas + acciones ────
+    const LABEL_MAP = {
+        'PER':     'PERSONA',
+        'PERSON':  'PERSONA',
+        'ORG':     'ORGANIZACIÓN',
+        'LOC':     'LUGAR',
+        'GPE':     'LUGAR',
+        'DATE':    'FECHA',
+        'DNI':     'DNI',
+        'EMAIL':   'EMAIL',
+        'PHONE':   'TELÉFONO',
+        'PATENTE': 'PATENTE',
+        'MISC':    'OTRO',
+    };
+
+    // 1. Asignar etiquetas automáticas secuenciales por tipo
+    const labelCounters = {};
+    document.querySelectorAll('.entity-row').forEach(row => {
+        const rawLabel = row.dataset.label || '';
+        const base     = LABEL_MAP[rawLabel] || rawLabel;
+        labelCounters[base] = (labelCounters[base] || 0) + 1;
+        const input = row.querySelector('.entity-label-input');
+        if (input) input.value = `[${base} ${labelCounters[base]}]`;
+    });
+
+    // 2. Inicializar tooltips Bootstrap
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+        if (window.bootstrap?.Tooltip) new bootstrap.Tooltip(el, { trigger: 'hover' });
+    });
+
+    // Helper: texto visible del span (sin hijos como el entity-menu)
+    function getSpanOwnText(span) {
+        return Array.from(span.childNodes)
+            .filter(n => n.nodeType === Node.TEXT_NODE)
+            .map(n => n.textContent)
+            .join('');
+    }
+
+    // Helper: encontrar todos los spans de entidad cuyo texto coincida
+    function findEntitySpans(entityText) {
+        const editor = document.getElementById('editor-container');
+        if (!editor) return [];
+        return Array.from(editor.querySelectorAll('.entity'))
+            .filter(s => getSpanOwnText(s).trim() === entityText.trim());
+    }
+
+    // Helper: deshabilitar fila visualmente
+    function disableEntityRow(row) {
+        row.classList.add('entity-row-disabled');
+        row.querySelectorAll('input, button').forEach(el => { el.disabled = true; });
+    }
+
+    // 3. Botón IGNORAR en la tabla: reemplaza cada ocurrencia con texto plano (no tachado)
+    document.querySelectorAll('.btn-ignore-entity').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const row        = btn.closest('.entity-row');
+            const entityText = row.dataset.entityText;
+            findEntitySpans(entityText).forEach(span => {
+                const plain = document.createTextNode(getSpanOwnText(span));
+                span.replaceWith(plain);
+            });
+            disableEntityRow(row);
+        });
+    });
+
+    // 5. Enlaces de salto: llevar al editor a la primera ocurrencia
+    function placeCaretAfter(node) {
+        try {
+            const range = document.createRange();
+            const sel = window.getSelection();
+            range.setStartAfter(node);
+            range.collapse(true);
+            sel.removeAllRanges();
+            sel.addRange(range);
+        } catch (e) {
+            // ignore
+        }
+    }
+
+    // Keep track of the last flashed span so we can revert its style when a new one is flashed
+    let lastFlashedSpan = null;
+
+    function clearFlashForEntity(entityText) {
+        findEntitySpans(entityText).forEach(s => s.classList.remove('entity-flash'));
+    }
+
+    function scrollToTargetSpan(span) {
+        const editor = document.getElementById('editor-container');
+        if (!editor || !span) return;
+
+        // Use offsetTop which is relative to the editor container and more reliable
+        const lineHeight = Math.max(span.offsetHeight || 18, 18);
+        const targetScroll = Math.max(0, span.offsetTop - lineHeight);
+        // perform smooth scroll and then ensure caret/focus are set after a short delay
+        editor.scrollTo({ top: targetScroll, behavior: 'smooth' });
+
+        // ensure caret/focus/place after occur after scrolling starts
+        setTimeout(() => {
+            editor.focus();
+            placeCaretAfter(span);
+        }, 120);
+    }
+
+    function flashSpan(span, entityText) {
+        if (!span) return;
+        // revert previous flashed span (different from this one)
+        if (lastFlashedSpan && lastFlashedSpan !== span) {
+            lastFlashedSpan.classList.remove('entity-flash');
+        }
+        // also clear any other flashes of the same entity
+        clearFlashForEntity(entityText);
+        span.classList.add('entity-flash');
+        lastFlashedSpan = span;
+    }
+
+    function scrollToFirstOccurrence(entityText) {
+        const spans = findEntitySpans(entityText);
+        if (!spans || spans.length === 0) return null;
+        const target = spans[0];
+        scrollToTargetSpan(target);
+        flashSpan(target, entityText);
+        return target;
+    }
+
+    // Clicking the plain-text-like link triggers an immediate jump to the first occurrence
+    document.querySelectorAll('.entity-jump-link').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const row = link.closest('.entity-row');
+            const entityText = row?.dataset?.entityText || link.textContent.trim();
+            const spans = findEntitySpans(entityText);
+            if (!spans || spans.length === 0) {
+                link.classList.add('text-muted');
+                setTimeout(() => link.classList.remove('text-muted'), 900);
+                return;
+            }
+
+            const target = spans[0];
+            // Scroll instantly so the element is visible with the occurrence near second line
+            const editor = document.getElementById('editor-container');
+            if (editor && target) {
+                // compute desired scroll top and set immediately
+                const lineHeight = Math.max(target.offsetHeight || 18, 18);
+                const top = Math.max(0, target.offsetTop - lineHeight);
+                editor.scrollTop = top;
+                // focus and place caret shortly after
+                setTimeout(() => {
+                    editor.focus();
+                    placeCaretAfter(target);
+                }, 10);
+                flashSpan(target, entityText);
+            }
+        });
+    });
+
+    // 6. Click izquierdo en cualquier entidad -> ir a la siguiente ocurrencia
+    const editor = document.getElementById('editor-container');
+    if (editor) {
+        // Hover: add temporary hover class so user sees which entity is active
+        editor.addEventListener('mouseover', (e) => {
+            const span = e.target.closest('.entity');
+            if (!span) return;
+            span.classList.add('entity-hover');
+            // Keep existing occurrence tooltip
+            const entityText = getSpanOwnText(span).trim();
+            const spans = findEntitySpans(entityText);
+            const idx = spans.indexOf(span);
+            if (idx >= 0) span.setAttribute('title', (idx + 1) + '/' + spans.length);
+        });
+
+        editor.addEventListener('mouseout', (e) => {
+            const span = e.target.closest('.entity');
+            if (!span) return;
+            span.classList.remove('entity-hover');
+            span.removeAttribute('title');
+        });
+
+        editor.addEventListener('click', (e) => {
+            const span = e.target.closest('.entity');
+            if (!span) return;
+
+            const entityText = getSpanOwnText(span).trim();
+            const spans = findEntitySpans(entityText);
+            const idx = spans.indexOf(span);
+            if (idx >= 0 && idx < spans.length - 1) {
+                const next = spans[idx + 1];
+                scrollToTargetSpan(next);
+                flashSpan(next, entityText);
+            } else if (idx === spans.length - 1) {
+                // Last occurrence: brief pulse to indicate end
+                span.style.transition = 'box-shadow 120ms';
+                span.style.boxShadow = '0 0 30px rgba(255,255,0,0.95)';
+                setTimeout(() => span.style.boxShadow = '', 350);
+            }
+
+            // Prevent opening context menu on left click
+            e.stopPropagation();
+        });
+    }
+
+    // 7. Dynamic hover tooltip inside editor: show occurrence index / total
+    if (editor) {
+        editor.addEventListener('mouseover', (e) => {
+            const span = e.target.closest('.entity');
+            if (!span) return;
+            const entityText = getSpanOwnText(span).trim();
+            const spans = findEntitySpans(entityText);
+            const idx = spans.indexOf(span);
+            if (idx >= 0) {
+                span.setAttribute('title', (idx + 1) + '/' + spans.length);
+            }
+        });
+
+        editor.addEventListener('mouseout', (e) => {
+            const span = e.target.closest('.entity');
+            if (!span) return;
+            // remove title so table/other logic doesn't show stale tooltips
+            span.removeAttribute('title');
         });
     }
 

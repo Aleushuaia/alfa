@@ -15,3 +15,24 @@ docker exec -it sae_dashboard php artisan <comando> — Ejecuta un comando Artis
 docker run --rm -v "<host>:/app" -w /app php:8.3-alpine sh -c "php artisan key:generate --force" — Ejecuta Artisan en contenedor temporal (ej.: generar APP_KEY)
 
 Start-Process "C:\Program Files\Docker\Docker\Docker Desktop.exe"
+ 
+# Comandos para detener / arrancar contenedores
+docker compose stop                 — Detiene los contenedores (no los elimina)
+docker compose start                — Inicia contenedores ya creados
+docker compose restart              — Reinicia los servicios (stop + start)
+docker compose down                 — Detiene y elimina contenedores (y red)
+docker compose down -v              — Detiene, elimina contenedores y volúmenes
+
+# Comandos por contenedor individual
+docker stop <container>             — Detiene un contenedor por nombre/ID
+docker start <container>            — Inicia un contenedor detenido por nombre/ID
+docker restart <container>          — Reinicia un contenedor específico
+
+# Ver estado / gestión
+docker compose ps                   — Lista contenedores del composition actual
+docker ps -a                        — Lista todos los contenedores (incl. parados)
+docker compose logs -f <service>    — Seguir logs de un servicio (ej: sae_nlp)
+
+# Reconstruir y levantar (útil al cambiar Dockerfile o dependencias)
+docker compose build --no-cache nlp
+docker compose up -d --no-deps --build nlp
