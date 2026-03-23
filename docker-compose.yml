@@ -57,6 +57,11 @@ services:
       DASHBOARD_DEMO: "${DASHBOARD_DEMO:-true}"
 
       # ----------------------------------------------------------------
+      # Microservicio Whisper (transcripción)
+      # ----------------------------------------------------------------
+      WHISPER_SERVICE_URL: "${WHISPER_SERVICE_URL:-http://whisper:8002}"
+
+      # ----------------------------------------------------------------
       # Opcache — en desarrollo (APP_ENV != production) el entrypoint
       # escribe un ini que habilita validate_timestamps y revalidate_freq=0
       # para que los cambios en código se reflejen sin reiniciar php-fpm.
@@ -69,6 +74,7 @@ services:
       - "host.docker.internal:host-gateway"
     depends_on:
       - nlp
+      - whisper
 
   nlp:
     build:
@@ -82,10 +88,29 @@ services:
     networks:
       - sae_network
 
+  whisper:
+    build:
+      context: ./whisper_service
+      dockerfile: Dockerfile
+    image: sae-kayen-whisper:latest
+    container_name: sae_whisper
+    restart: unless-stopped
+    ports:
+      - "8002:8002"
+    environment:
+      # tiny | base | small | medium | large-v3
+      WHISPER_MODEL: "${WHISPER_MODEL:-small}"
+      MAX_FILE_SIZE_MB: "${MAX_FILE_SIZE_MB:-200}"
+    volumes:
+      - whisper_models:/root/.cache/whisper
+    networks:
+      - sae_network
+
 volumes:
   dashboard_storage:
   vendor:
   node_modules:
+  whisper_models:
 
 networks:
   sae_network:

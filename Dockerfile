@@ -21,7 +21,9 @@ RUN apk add --no-cache \
         oniguruma-dev \
         libpq-dev \
         curl-dev \
-        poppler-utils
+        poppler-utils \
+        tesseract-ocr \
+        tesseract-ocr-data-spa
 
 #  Extensiones PHP 
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
@@ -78,6 +80,7 @@ RUN sed -i 's/user nginx;/user www-data;/g' /etc/nginx/nginx.conf 2>/dev/null ||
 # Configuraciones
 COPY nginx.conf           /etc/nginx/http.d/default.conf
 COPY supervisord.conf     /etc/supervisor/conf.d/supervisord.conf
+COPY php-upload.ini       /usr/local/etc/php/conf.d/upload.ini
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 

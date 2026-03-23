@@ -110,6 +110,21 @@
         border-radius: 4px;
         padding: 0 3px;
     }
+    /* Justified 100 chars per line (no word breaks) */
+    #editor-container.justify-100 {
+        width: 100ch;
+        max-width: 100%;
+        text-align: justify;
+        margin-left: auto;
+        margin-right: auto;
+        hyphens: none;
+        white-space: normal;
+        word-break: normal;
+        overflow-wrap: normal;
+    }
+    @media (max-width: 540px) {
+        #editor-container.justify-100 { width: 100% !important; }
+    }
 </style>
 @endpush
 
@@ -184,6 +199,9 @@
                 </span>
                 @if(isset($analyzedHtml))
                 <div class="d-flex gap-2">
+                    <button class="btn btn-outline-secondary btn-sm" id="btnJustify100" title="Justificar y limitar a 100 caracteres por renglón">
+                        <i class="fas fa-align-justify me-1"></i>Justificado 100
+                    </button>
                     <button class="btn btn-warning btn-sm" id="btnAnonimizar">
                         <i class="fas fa-user-secret me-1"></i>Anonimizar sensibles
                     </button>
@@ -458,6 +476,30 @@ document.addEventListener('DOMContentLoaded', () => {
             }).catch(() => {
                 document.getElementById('exportForm').submit();
             });
+        });
+    }
+
+    // ── Botón Justificado 100: aplicar/remover clase que fuerza 100 caracteres por renglón
+    const btnJustify100 = document.getElementById('btnJustify100');
+    if (btnJustify100) {
+        btnJustify100.addEventListener('click', () => {
+            const editorEl = document.getElementById('editor-container');
+            if (!editorEl) return;
+            const enabled = editorEl.classList.toggle('justify-100');
+            // Toggle button style
+            btnJustify100.classList.toggle('btn-primary', enabled);
+            btnJustify100.classList.toggle('btn-outline-secondary', !enabled);
+
+            // If CKEditor instance exists, force a reflow by resetting the data
+            try {
+                if (window.CKEDITOR && CKEDITOR.instances && CKEDITOR.instances['editor-container']) {
+                    const inst = CKEDITOR.instances['editor-container'];
+                    const html = (typeof inst.getData === 'function') ? inst.getData() : editorEl.innerHTML;
+                    if (typeof inst.setData === 'function') inst.setData(html);
+                }
+            } catch (e) {
+                // ignore
+            }
         });
     }
 

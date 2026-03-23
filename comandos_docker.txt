@@ -36,3 +36,5 @@ docker compose logs -f <service>    — Seguir logs de un servicio (ej: sae_nlp)
 # Reconstruir y levantar (útil al cambiar Dockerfile o dependencias)
 docker compose build --no-cache nlp
 docker compose up -d --no-deps --build nlp
+
+

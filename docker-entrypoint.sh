@@ -44,5 +44,15 @@ fi
 chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache 2>/dev/null || true
 chmod -R 775 /var/www/storage /var/www/bootstrap/cache 2>/dev/null || true
 
+# ─── Directorios temporales de nginx (ahora en /tmp para evitar permisos) ───
+echo "[entrypoint] Creando directorios tmp de nginx en /tmp..."
+mkdir -p /tmp/nginx_client_body 2>/dev/null || true
+chmod 1777 /tmp/nginx_client_body 2>/dev/null || true
+
+# ─── Directorio temporal de OCR ──────────────────────────────────────────────
+mkdir -p /var/www/storage/app/private/temp-ocr 2>/dev/null || true
+chown -R www-data:www-data /var/www/storage/app/private/temp-ocr 2>/dev/null || true
+chmod -R 775 /var/www/storage/app/private/temp-ocr 2>/dev/null || true
+
 echo "[entrypoint] Iniciando servicios..."
 exec "$@"

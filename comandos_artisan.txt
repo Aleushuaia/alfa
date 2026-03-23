@@ -137,3 +137,5 @@ Ejemplo (forzar dentro del contenedor):
 
 --------------------------------------------------
 Fin del listado.
+
+docker exec sae_dashboard php artisan view:clear

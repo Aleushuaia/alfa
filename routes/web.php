@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\OcrExtractorController;
 use App\Http\Controllers\PdfAnalyzerController;
+use App\Http\Controllers\TranscripcionController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -30,3 +32,11 @@ Route::get('/pdf-analyzer',           [PdfAnalyzerController::class, 'showForm']
 Route::post('/pdf-analyzer/process',  [PdfAnalyzerController::class, 'processPdf'])->name('pdf-analyzer.process');
 Route::post('/pdf-analyzer/anonimize',[PdfAnalyzerController::class, 'anonimizeEntities'])->name('pdf-analyzer.anonimize');
 Route::get('/pdf-analyzer/export',    [PdfAnalyzerController::class, 'exportPdf'])->name('pdf-analyzer.export');
+
+// ── Transcriptor Multimedia (Whisper) ─────────────────────────────────────────────
+Route::get('/transcripcion',          [TranscripcionController::class, 'index'])->name('transcripcion.index');
+Route::post('/transcripcion/procesar', [TranscripcionController::class, 'transcribir'])->name('transcripcion.procesar');
+
+// ── Extractor de Texto via OCR (Tesseract) ────────────────────────────────────────
+Route::get('/ocr-extractor',          [OcrExtractorController::class, 'index'])->name('pdf-extractor.index');
+Route::post('/ocr-extractor/extract', [OcrExtractorController::class, 'extract'])->name('pdf-extractor.extract');

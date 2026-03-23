@@ -7,8 +7,8 @@
     <title>@yield('title', config('app.name', 'SAE Kayen'))</title>
 
     {{-- Favicon --}}
-    <link rel="icon" href="{{ asset('images/2d2.png') }}" sizes="100x100" type="image/png">
-    <link rel="apple-touch-icon" href="{{ asset('images/2d2.png') }}">
+    <link rel="icon" href="{{ asset('jur2d2.png') }}" sizes="100x100" type="image/png">
+    <link rel="apple-touch-icon" href="{{ asset('jur2d2.png') }}">
 
     {{-- Google Fonts --}}
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -56,7 +56,7 @@
     </main>
 
     <footer id="page-footer">
-        <span>&copy; {{ date('Y') }} Jur-2d2. Todos los derechos reservados.</span>
+        <span>&copy; {{ date('Y') }} {{ config('app.name', 'Pento') }}. Todos los derechos reservados.</span>
     </footer>
 </div>
 
