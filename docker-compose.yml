@@ -42,13 +42,13 @@ services:
       DB_SAE_COLLATION: "${DB_SAE_COLLATION:-utf8mb4_unicode_ci}"
 
       # ----------------------------------------------------------------
-      # Conexión PostgreSQL alternativa (opcional)
+      # Conexión PostgreSQL — contenedor sae_postgres
       # ----------------------------------------------------------------
-      DB_PG_HOST: "${DB_PG_HOST:-}"
+      DB_PG_HOST: "${DB_PG_HOST:-sae_postgres}"
       DB_PG_PORT: "${DB_PG_PORT:-5432}"
-      DB_PG_DATABASE: "${DB_PG_DATABASE:-}"
-      DB_PG_USERNAME: "${DB_PG_USERNAME:-}"
-      DB_PG_PASSWORD: "${DB_PG_PASSWORD:-}"
+      DB_PG_DATABASE: "${DB_PG_DATABASE:-sae_blacklist}"
+      DB_PG_USERNAME: "${DB_PG_USERNAME:-sae_user}"
+      DB_PG_PASSWORD: "${DB_PG_PASSWORD:-Sae2026!Secure}"
       DB_PG_SCHEMA: "${DB_PG_SCHEMA:-public}"
 
       # ----------------------------------------------------------------
@@ -75,6 +75,7 @@ services:
     depends_on:
       - nlp
       - whisper
+      - postgres
 
   nlp:
     build:
@@ -87,6 +88,27 @@ services:
       - "8001:8001"
     networks:
       - sae_network
+
+  # ── PostgreSQL — Blacklist y persistencia de entidades ─────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: sae_postgres
+    restart: unless-stopped
+    ports:
+      - "${PG_EXTERNAL_PORT:-5433}:5432"
+    environment:
+      POSTGRES_DB: "sae_blacklist"
+      POSTGRES_USER: "sae_user"
+      POSTGRES_PASSWORD: "Sae2026!Secure"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - sae_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sae_user -d sae_blacklist"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   whisper:
     build:
@@ -111,6 +133,7 @@ volumes:
   vendor:
   node_modules:
   whisper_models:
+  pg_data:
 
 networks:
   sae_network:

@@ -44,10 +44,15 @@ fi
 chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache 2>/dev/null || true
 chmod -R 775 /var/www/storage /var/www/bootstrap/cache 2>/dev/null || true
 
-# ─── Directorios temporales de nginx (ahora en /tmp para evitar permisos) ───
-echo "[entrypoint] Creando directorios tmp de nginx en /tmp..."
+# ─── Directorios temporales de nginx ─────────────────────────────────────────
+# Crear /tmp/nginx_client_body (usado por client_body_temp_path en nginx.conf)
+echo "[entrypoint] Preparando directorios tmp de nginx..."
 mkdir -p /tmp/nginx_client_body 2>/dev/null || true
 chmod 1777 /tmp/nginx_client_body 2>/dev/null || true
+# Sincronizar la configuración nginx del proyecto al sitio activo
+cp /var/www/nginx.conf /etc/nginx/http.d/default.conf 2>/dev/null || true
+# Fallback: asegurar permisos del directorio tmp del sistema nginx
+chown -R www-data:www-data /var/lib/nginx/tmp/ 2>/dev/null || true
 
 # ─── Directorio temporal de OCR ──────────────────────────────────────────────
 mkdir -p /var/www/storage/app/private/temp-ocr 2>/dev/null || true

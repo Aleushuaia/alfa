@@ -15,14 +15,7 @@
     </a>
 
     <nav class="sidebar-nav py-2">
-        <p class="nav-section-label">Principal</p>
-
-        <a href="{{ route('dashboard.v2') }}" class="nav-link {{ request()->routeIs('dashboard.v2') ? 'active' : '' }}">
-            <span class="nav-icon"><i class="fas fa-tachometer-alt"></i></span>
-            Main Dashboard
-        </a>
-
-        <p class="nav-section-label mt-2">Procesamiento de Texto</p>
+        <p class="nav-section-label">Procesamiento de Texto</p>
         <a href="{{ route('pdf-extractor.index') }}" class="nav-link {{ request()->routeIs('pdf-extractor*') ? 'active' : '' }}">
             <span class="nav-icon"><i class="fas fa-file-alt"></i></span>
             Pdf de imagen a texto
@@ -41,15 +34,6 @@
             <span class="nav-icon"><i class="fas fa-microphone"></i></span>
             Transcripciones multimedia
         </a>
-        <a href="#" class="nav-link">
-            <span class="nav-icon"><i class="fas fa-file-pdf"></i></span>
-            Unir o separar PDF
-        </a>
-        <a href="#" class="nav-link">
-            <span class="nav-icon"><i class="fas fa-book"></i></span>
-            PDFs modo libro
-        </a>
-
         <p class="nav-section-label mt-2">Insights de Gestión</p>
         <a href="#" class="nav-link">
             <span class="nav-icon"><i class="fas fa-gavel"></i></span>
@@ -67,9 +51,14 @@
             <span class="nav-icon"><i class="fas fa-bell"></i></span>
             Notificaciones
         </a>
-        <a href="#" class="nav-link">
-            <span class="nav-icon"><i class="fas fa-envelope"></i></span>
-            Comunicaciones Digitales
+        <p class="nav-section-label mt-2">Configuración</p>
+        <a href="{{ route('blacklist.index') }}" class="nav-link {{ request()->routeIs('blacklist.*') ? 'active' : '' }}">
+            <span class="nav-icon"><i class="fas fa-ban"></i></span>
+            Gestión de la Blacklist (omitidas)
+        </a>
+        <a href="{{ route('whitelist.index') }}" class="nav-link {{ request()->routeIs('whitelist.*') ? 'active' : '' }}">
+            <span class="nav-icon"><i class="fas fa-check-circle"></i></span>
+            Gestión de la Whitelist (agregadas)
         </a>
     </nav>
 

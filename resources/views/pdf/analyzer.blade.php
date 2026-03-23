@@ -24,7 +24,7 @@
     .entity.phone    { background: #ffffcc; }
     .entity.misc     { background: #e0ccff; }
 
-    /* ── Menú flotante al hacer clic ────────────────────── */
+    /* ── Menú flotante al hacer clic derecho ─────────────── */
     .entity-menu {
         display: none;
         position: absolute;
@@ -32,23 +32,80 @@
         background: #fff;
         border: 1px solid #ccc;
         border-radius: 6px;
-        box-shadow: 0 4px 12px rgba(0,0,0,.15);
+        box-shadow: 0 4px 16px rgba(0,0,0,.18);
         padding: 4px 0;
-        min-width: 175px;
+        width: max-content;
+        bottom: calc(100% + 5px);  /* aparece ENCIMA de la entidad */
+        top: auto;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+    /* Flecha decorativa — apunta hacia abajo cuando el menú está encima (dir=up) */
+    .entity-menu[data-dir="up"]::after,
+    .entity-menu:not([data-dir])::after {
+        content: '';
+        position: absolute;
         top: 100%;
-        left: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        border: 5px solid transparent;
+        border-top-color: #ccc;
+    }
+    .entity-menu[data-dir="up"]::before,
+    .entity-menu:not([data-dir])::before {
+        content: '';
+        position: absolute;
+        top: calc(100% + 1px);
+        left: 50%;
+        transform: translateX(-50%);
+        border: 5px solid transparent;
+        border-top-color: #fff;
+        z-index: 1;
+    }
+    /* Flecha apunta hacia arriba cuando el menú está debajo (dir=down) */
+    .entity-menu[data-dir="down"]::after {
+        content: '';
+        position: absolute;
+        bottom: 100%;
+        top: auto;
+        left: 50%;
+        transform: translateX(-50%);
+        border: 5px solid transparent;
+        border-bottom-color: #ccc;
+    }
+    .entity-menu[data-dir="down"]::before {
+        content: '';
+        position: absolute;
+        bottom: calc(100% + 1px);
+        top: auto;
+        left: 50%;
+        transform: translateX(-50%);
+        border: 5px solid transparent;
+        border-bottom-color: #fff;
+        z-index: 1;
     }
     .entity-menu button {
         display: block;
         width: 100%;
-        padding: 6px 14px;
+        padding: 7px 16px;
         background: none;
         border: none;
         text-align: left;
-        font-size: .85rem;
+        font-size: .84rem;
         cursor: pointer;
+        white-space: nowrap;  /* siempre en un solo renglón */
     }
-    .entity-menu button:hover { background: #f5f5f5; }
+    .entity-menu button:hover { background: #f0f4ff; }
+    /* Separador visual entre opciones del menú */
+    .entity-menu hr {
+        margin: 3px 0;
+        border-color: #eee;
+    }
+    /* Estado de carga del botón blacklist */
+    .entity-menu button.loading {
+        opacity: .6;
+        pointer-events: none;
+    }
 
     /* ── Fila deshabilitada en tabla de entidades ────────── */
     .entity-row-disabled td { opacity: .38; }
@@ -67,6 +124,17 @@
         background: #fefefe;
         line-height: 1.8;
         font-size: .95rem;
+        max-width: 100ch;
+        overflow-wrap: break-word;
+        word-break: break-word;
+    }
+    /* Placeholder cuando el editor está vacío */
+    #editor-container[data-empty="true"]::before {
+        content: attr(data-placeholder);
+        color: #bbb;
+        font-style: italic;
+        pointer-events: none;
+        display: block;
     }
 
     /* ── Leyenda ─────────────────────────────────────────── */
@@ -110,21 +178,7 @@
         border-radius: 4px;
         padding: 0 3px;
     }
-    /* Justified 100 chars per line (no word breaks) */
-    #editor-container.justify-100 {
-        width: 100ch;
-        max-width: 100%;
-        text-align: justify;
-        margin-left: auto;
-        margin-right: auto;
-        hyphens: none;
-        white-space: normal;
-        word-break: normal;
-        overflow-wrap: normal;
-    }
-    @media (max-width: 540px) {
-        #editor-container.justify-100 { width: 100% !important; }
-    }
+    /* (Removed) Justified helper removed — feature deprecated */
 </style>
 @endpush
 
@@ -197,38 +251,33 @@
                 <span class="fw-semibold">
                     <i class="fas fa-file-alt me-2"></i>Texto analizado
                 </span>
-                @if(isset($analyzedHtml))
-                <div class="d-flex gap-2">
-                    <button class="btn btn-outline-secondary btn-sm" id="btnJustify100" title="Justificar y limitar a 100 caracteres por renglón">
-                        <i class="fas fa-align-justify me-1"></i>Justificado 100
+                <div class="d-flex gap-2 flex-wrap">
+                    <!-- Justify feature removed -->
+                    <button class="btn btn-primary btn-sm" id="btnAnalizeText">
+                        <i class="fas fa-search me-1"></i>Analizar texto
                     </button>
-                    <button class="btn btn-warning btn-sm" id="btnAnonimizar">
-                        <i class="fas fa-user-secret me-1"></i>Anonimizar sensibles
-                    </button>
-                    <button class="btn btn-success btn-sm" id="btnExportar">
-                        <i class="fas fa-file-export me-1"></i>Exportar PDF anonimizado
-                    </button>
+                    @if(isset($analyzedHtml))
+                    {{-- Export removed per UI update --}}
+                    @endif
                 </div>
-                @endif
             </div>
 
             <div class="card-body">
-                @if(isset($analyzedHtml))
-                    {{-- Editor de texto con entidades --}}
-                    <div id="editor-container" contenteditable="true">
-                        {!! $analyzedHtml !!}
-                    </div>
-                    {{-- Formulario oculto para exportar --}}
-                    <form method="GET"
-                          action="{{ route('pdf-analyzer.export') }}"
-                          id="exportForm">
-                    </form>
-                @else
-                    <div class="text-center text-muted py-5">
-                        <i class="fas fa-file-upload fa-3x mb-3 opacity-25"></i>
-                        <p class="mb-0">Sube un PDF para comenzar el análisis.</p>
-                    </div>
-                @endif
+                {{-- Editor siempre visible: acepta texto pegado o muestra resultado del análisis --}}
+                <div id="editor-container"
+                     contenteditable="true"
+                     data-placeholder="Pegue aquí el texto a analizar, o suba un PDF desde el panel izquierdo…"
+                     data-empty="{{ isset($analyzedHtml) ? 'false' : 'true' }}">@if(isset($analyzedHtml)){!! $analyzedHtml !!}@endif</div>
+
+                    {{-- Export form removed (export button removed) --}}
+
+                {{-- Formulario oculto para analizar texto pegado --}}
+                <form method="POST"
+                      action="{{ route('pdf-analyzer.analyze-text') }}"
+                      id="analyzeTextForm">
+                    @csrf
+                    <textarea name="text" id="analyzeTextInput" style="display:none"></textarea>
+                </form>
             </div>
         </div>
 
@@ -237,7 +286,7 @@
         <div class="card shadow-sm mt-3">
             <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
                 <div><i class="fas fa-list-ul me-2"></i>Entidades detectadas <span class="fw-normal text-muted">(agrupadas)</span></div>
-                <span class="badge bg-secondary">{{ count($groupedEntities) }} entidades únicas</span>
+                <span class="badge bg-secondary" id="entity-count-badge">{{ count($groupedEntities) }} entidades detectadas</span>
             </div>
             <div class="card-body p-2 entities-scroll">
                 <div class="table-responsive">
@@ -248,7 +297,6 @@
                                 <th>Tipo</th>
                                 <th class="text-center">Veces</th>
                                 <th>Etiqueta a usar</th>
-                                <th class="text-center">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -302,6 +350,8 @@
                                 $currentLabel = null;
                             @endphp
 
+                            @php $counters = [];
+                            @endphp
                             @foreach($entities as $item)
                                 @php $label = $item['label'] ?? ''; @endphp
 
@@ -309,13 +359,19 @@
                                 @php $displayLabel = $labelMap[$label] ?? ($label ?: 'OTROS'); @endphp
                                 @if($displayLabel !== ($currentLabel ? ($labelMap[$currentLabel] ?? $currentLabel) : $currentLabel))
                                     <tr class="table-secondary">
-                                        <td colspan="5" class="fw-semibold">{{ $displayLabel }}</td>
+                                        <td colspan="4" class="fw-semibold">{{ $displayLabel }}</td>
                                     </tr>
                                     @php $currentLabel = $label; @endphp
                                 @endif
 
+                                @php
+                                    $baseLabel = $displayLabel;
+                                    $counters[$baseLabel] = ($counters[$baseLabel] ?? 0) + 1;
+                                    $correlative = $counters[$baseLabel];
+                                @endphp
+
                                 <tr class="entity-row"
-                                    data-entity-texts="{{ e(json_encode($item['variants'] ?? [$item['text']])) }}"
+                                    data-entity-texts="{{ json_encode($item['variants'] ?? [$item['text']]) }}"
                                     data-label="{{ $label }}">
                                     <td class="fw-medium">
                                                      <a href="#" class="entity-jump-link">{{ $item['text'] }}</a>
@@ -323,7 +379,7 @@
                                     <td>
                                         <span class="badge rounded-pill"
                                               style="background:var(--entity-{{ strtolower($label ?? '') }},#ddd);color:#333">
-                                            {{ $label }}
+                                            {{ $displayLabel }}
                                         </span>
                                     </td>
                                     <td class="text-center">
@@ -332,23 +388,21 @@
                                     <td>
                                         <input type="text"
                                                class="form-control form-control-sm entity-label-input"
+                                               value="[{{ $displayLabel }} {{ $correlative }}]"
                                                placeholder="[ETIQUETA]"
                                                style="min-width:145px;font-size:.8rem;">
                                     </td>
-                                                    <td class="text-center text-nowrap">
-                                                        <button class="btn btn-sm btn-outline-secondary btn-ignore-entity"
-                                                                title="Ignorar: dejar este texto sin alterar en el documento"
-                                                                data-bs-toggle="tooltip">
-                                                            <i class="fas fa-eye-slash fa-sm"></i>
-                                                        </button>
-                                                    </td>
                                 </tr>
                             @endforeach
                         </tbody>
                     </table>
                 </div>
                 <div class="mt-2 text-muted" style="font-size:.75rem;">
-                    <i class="fas fa-eye-slash me-1"></i>Ignorar en el texto
+                    <i class="fas fa-mouse-pointer me-1"></i>Clic derecho sobre una entidad en el texto para ignorarla o agregarla a la blacklist
+                </div>
+
+                <div class="d-flex justify-content-end mt-3">
+                    <button class="btn btn-primary btn-sm" id="btnAnonimizar">Anonimizar</button>
                 </div>
             </div>
         </div>
@@ -364,7 +418,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
 
-    // ── Loader en el botón Analizar ───────────────────────────────────────
+    // ── Loader en el botón Analizar (PDF) ────────────────────────────────
     const uploadForm = document.getElementById('uploadForm');
     const btnAnalizar = document.getElementById('btnAnalizar');
     if (uploadForm) {
@@ -376,132 +430,411 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ── Menú flotante en entidades ────────────────────────────────────────
+    // ── Estado vacío del editor (placeholder) ────────────────────────────
+    const editorMain = document.getElementById('editor-container');
+    function syncEditorEmpty() {
+        if (!editorMain) return;
+        const empty = editorMain.innerText.trim() === '';
+        editorMain.setAttribute('data-empty', empty ? 'true' : 'false');
+    }
+    if (editorMain) {
+        editorMain.addEventListener('input', syncEditorEmpty);
+        editorMain.addEventListener('paste', () => setTimeout(syncEditorEmpty, 0));
+        syncEditorEmpty(); // init on load
+    }
+
+    // ── Variables y funciones compartidas ─────────────────────────────────
     let activeMenu = null;
 
     function closeActiveMenu() {
-        if (activeMenu) {
-            activeMenu.style.display = 'none';
-            activeMenu = null;
+        if (!activeMenu) return;
+        activeMenu.remove();
+        activeMenu = null;
+    }
+
+    function removeEntityRowFromTable(entityText, entityLabel) {
+        const badge = document.getElementById('entity-count-badge');
+        document.querySelectorAll('.entity-row').forEach(row => {
+            let variants = [];
+            try { variants = JSON.parse(row.dataset.entityTexts || '[]').map(v => (v || '').trim()); } catch (e) {}
+            const label = row.dataset.label || '';
+            if (variants.includes(entityText.trim()) && label === entityLabel) {
+                row.remove();
+                if (badge) {
+                    const n = parseInt(badge.textContent) || 1;
+                    badge.textContent = Math.max(0, n - 1) + ' entidades detectadas';
+                }
+            }
+        });
+        // Eliminar filas de separador que quedaron sin entidades debajo
+        document.querySelectorAll('.table-secondary').forEach(sep => {
+            let next = sep.nextElementSibling;
+            let hasEntityRow = false;
+            while (next && !next.classList.contains('table-secondary')) {
+                if (next.classList.contains('entity-row')) { hasEntityRow = true; break; }
+                next = next.nextElementSibling;
+            }
+            if (!hasEntityRow) sep.remove();
+        });
+    }
+
+    function positionMenu(menu, anchor) {
+        const mh = menu.offsetHeight || 120;
+        const rect = anchor.getBoundingClientRect();
+        const spaceAbove = rect.top;
+        const spaceBelow = window.innerHeight - rect.bottom;
+        if (spaceAbove > mh + 10 || spaceAbove >= spaceBelow) {
+            menu.style.bottom = 'calc(100% + 5px)';
+            menu.style.top    = 'auto';
+            menu.setAttribute('data-dir', 'up');
+        } else {
+            menu.style.top    = 'calc(100% + 5px)';
+            menu.style.bottom = 'auto';
+            menu.setAttribute('data-dir', 'down');
         }
+    }
+
+    // ── Botón Analizar texto (texto pegado en el editor) ──────────────────
+    const btnAnalizeText = document.getElementById('btnAnalizeText');
+    if (btnAnalizeText) {
+        btnAnalizeText.addEventListener('click', () => {
+            const editorEl = document.getElementById('editor-container');
+            const form     = document.getElementById('analyzeTextForm');
+            const input    = document.getElementById('analyzeTextInput');
+            if (!editorEl || !form || !input) return;
+
+            const text = editorEl.innerText.trim();
+            if (!text || text.length < 10) {
+                showToast('Ingrese al menos 10 caracteres de texto para analizar.', 'warning');
+                return;
+            }
+
+            input.value = text;
+            btnAnalizeText.disabled = true;
+            btnAnalizeText.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Analizando…';
+            form.submit();
+        });
     }
 
     // Show entity menu on right-click (context menu) instead of left click
     document.addEventListener('contextmenu', (e) => {
-        const span = e.target.closest('.entity');
         closeActiveMenu();
+
+        // ── Caso A: clic derecho sobre texto seleccionado (no sobre un span de entidad) ──
+        const selection = window.getSelection();
+        const selectedText = selection ? selection.toString().trim() : '';
+        const span = e.target.closest('.entity');
+        const editor = document.getElementById('editor-container');
+        const inEditor = editor && editor.contains(e.target);
+
+        if (selectedText && !span && inEditor) {
+            e.preventDefault();
+
+            // Crear un menú flotante anclado en el punto de clic
+            const menu = document.createElement('div');
+            menu.className = 'entity-menu';
+            menu.style.position = 'fixed';
+            menu.style.left = Math.min(e.clientX, window.innerWidth - 260) + 'px';
+            // Posicionar encima o debajo del cursor segun espacio
+            const spaceBelow = window.innerHeight - e.clientY;
+            if (spaceBelow < 100) {
+                menu.style.top    = 'auto';
+                menu.style.bottom = (window.innerHeight - e.clientY + 4) + 'px';
+            } else {
+                menu.style.top  = (e.clientY + 8) + 'px';
+                menu.style.bottom = 'auto';
+            }
+            menu.style.zIndex    = '99999';
+            menu.style.transform = 'none';
+            menu.innerHTML = `
+                <div style="padding:5px 14px 3px;font-size:.75rem;color:#888;font-weight:600;letter-spacing:.04em;">TEXTO SELECCIONADO</div>
+                <div style="padding:2px 14px 4px;font-size:.8rem;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px;">"${selectedText.length > 40 ? selectedText.slice(0,40) + '…' : selectedText}"</div>
+                <hr style="margin:3px 0">
+                <button data-action="sel-blacklist">🗃️ Agregar a la Blacklist (omitir)</button>
+                <button data-action="sel-whitelist">✅ Agregar a la Whitelist (reconocer)</button>
+            `;
+            document.body.appendChild(menu);
+            menu.style.display = 'block';
+            activeMenu = menu;
+
+            menu.querySelector('[data-action="sel-blacklist"]').addEventListener('click', async (ev) => {
+                ev.stopPropagation();
+                const btn = ev.currentTarget;
+                btn.classList.add('loading'); btn.textContent = '⏳ Guardando…';
+                try {
+                    const res = await fetch("{{ route('pdf-analyzer.add-blacklist') }}", {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
+                        body: JSON.stringify({ term: selectedText, entity_type: null }),
+                    });
+                    const data = await res.json();
+                    if (!res.ok || !data.success) throw new Error(data.message || 'Error');
+                    showToast(data.message, 'success');
+                } catch (err) { showToast('❌ ' + err.message, 'danger'); }
+                finally { closeActiveMenu(); }
+            }, { once: true });
+
+            menu.querySelector('[data-action="sel-whitelist"]').addEventListener('click', async (ev) => {
+                ev.stopPropagation();
+                const btn = ev.currentTarget;
+                btn.classList.add('loading'); btn.textContent = '⏳ Guardando…';
+                try {
+                    const res = await fetch("{{ route('pdf-analyzer.add-whitelist') }}", {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
+                        body: JSON.stringify({ term: selectedText, entity_type: null }),
+                    });
+                    const data = await res.json();
+                    if (!res.ok || !data.success) throw new Error(data.message || 'Error');
+                    showToast(data.message, 'success');
+                } catch (err) { showToast('❌ ' + err.message, 'danger'); }
+                finally { closeActiveMenu(); }
+            }, { once: true });
+
+            e.stopPropagation();
+            return;
+        }
+
+        // ── Caso B: clic derecho sobre un span de entidad ─────────────────────
         if (!span) return;
         e.preventDefault();
 
-        // Crear o reutilizar menú
+        // Obtener texto y tipo de entidad desde el span
+        const entityText  = getSpanOwnText(span).trim();
+        const entityLabel = span.dataset.label || ''; // ej: PER, ORG, LOC, DNI...
+
+        // Crear menú
         let menu = span.querySelector('.entity-menu');
-        if (!menu) {
-            menu = document.createElement('div');
-            menu.className = 'entity-menu';
-            menu.innerHTML = `
-                <button data-action="ignore">🚫 Ignorar entidad</button>
-            `;
-            span.style.position = 'relative';
-            span.appendChild(menu);
-        }
+        if (menu) menu.remove();
+
+        menu = document.createElement('div');
+        menu.className = 'entity-menu';
+        menu.innerHTML = `
+            <button data-action="ignore-once">🚫 Ignorar entidad sólo esta vez</button>
+            <hr>
+            <button data-action="add-blacklist">🗃️ Ignorar y agregar a la blacklist</button>
+        `;
+        span.style.position = 'relative';
+        span.appendChild(menu);
 
         menu.style.display = 'block';
         activeMenu = menu;
+
+        // Posicionamiento inteligente (encima/debajo según espacio disponible)
+        requestAnimationFrame(() => positionMenu(menu, span));
+
         e.stopPropagation();
 
-        // Acciones del menú (solo Ignorar)
-        menu.querySelectorAll('button').forEach(btn => {
-            btn.addEventListener('click', (ev) => {
-                ev.stopPropagation();
-                const action = btn.dataset.action;
-                if (action === 'ignore') {
-                    // Replace the entity span with plain text so it remains unaltered in the editor
-                    const plain = document.createTextNode(getSpanOwnText(span));
-                    span.replaceWith(plain);
-                }
-                closeActiveMenu();
-            }, { once: true });
-        });
-    });
+        // ── Acción: Ignorar sólo esta vez ────────────────────────────────────
+        // Reemplaza el span por texto plano Y elimina fila en la tabla.
+        menu.querySelector('[data-action="ignore-once"]').addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            // Eliminar TODOS los spans de esta entidad en el editor
+            const editorEl = document.getElementById('editor-container');
+            if (editorEl) {
+                editorEl.querySelectorAll('.entity').forEach(s => {
+                    if (getSpanOwnText(s).trim() === entityText &&
+                        (s.dataset.label || '') === entityLabel) {
+                        s.replaceWith(document.createTextNode(getSpanOwnText(s)));
+                    }
+                });
+            }
+            removeEntityRowFromTable(entityText, entityLabel);
+            closeActiveMenu();
+            showToast('Entidad ignorada en este análisis.', 'info');
+        }, { once: true });
 
-    // ── Anonimización automática ──────────────────────────────────────────
-    const btnAnonimizar = document.getElementById('btnAnonimizar');
-    if (btnAnonimizar) {
-        btnAnonimizar.addEventListener('click', async () => {
-            const editor = document.getElementById('editor-container');
-            const currentHtml = editor.innerHTML;
+        // ── Acción: Ignorar y agregar a la blacklist ──────────────────────────
+        // Llama al backend via AJAX para guardar en entity_blacklist (PostgreSQL),
+        // y luego elimina TODAS las ocurrencias de esta entidad en el editor.
+        menu.querySelector('[data-action="add-blacklist"]').addEventListener('click', async (ev) => {
+            ev.stopPropagation();
 
-            btnAnonimizar.disabled = true;
-            btnAnonimizar.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Anonimizando…';
+            const btn = menu.querySelector('[data-action="add-blacklist"]');
+            btn.classList.add('loading');
+            btn.textContent = '⏳ Guardando…';
 
             try {
-                const res = await fetch("{{ route('pdf-analyzer.anonimize') }}", {
+                // 1. Enviar POST al backend para guardar en la blacklist
+                const response = await fetch("{{ route('pdf-analyzer.add-blacklist') }}", {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                     },
-                    body: JSON.stringify({ html: currentHtml }),
+                    body: JSON.stringify({
+                        term:        entityText,
+                        entity_type: entityLabel || null,
+                    }),
                 });
 
-                if (!res.ok) throw new Error('Error HTTP ' + res.status);
-                const data = await res.json();
-                editor.innerHTML = data.html;
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.message || 'Error al guardar en la lista negra.');
+                }
+
+                // 2. Eliminar TODAS las ocurrencias de esta entidad en el editor
+                //    para que queden como texto plano (sin resaltado).
+                const editor = document.getElementById('editor-container');
+                if (editor) {
+                    // Buscar todos los spans con el mismo texto y label
+                    editor.querySelectorAll('.entity').forEach(s => {
+                        if (getSpanOwnText(s).trim() === entityText &&
+                            (s.dataset.label || '') === entityLabel) {
+                            s.replaceWith(document.createTextNode(getSpanOwnText(s)));
+                        }
+                    });
+                }
+
+                // 3. Eliminar la fila de la tabla de entidades + actualizar badge
+                removeEntityRowFromTable(entityText, entityLabel);
+
+                // 4. Mostrar confirmación breve al usuario
+                showToast(data.message, 'success');
+
             } catch (err) {
-                alert('No se pudo anonimizar: ' + err.message);
+                showToast('❌ ' + err.message, 'danger');
             } finally {
-                btnAnonimizar.disabled = false;
-                btnAnonimizar.innerHTML = '<i class="fas fa-user-secret me-1"></i>Anonimizar sensibles';
+                closeActiveMenu();
             }
-        });
-    }
+        }, { once: true });
+    });
 
-    // ── Exportar PDF ──────────────────────────────────────────────────────
-    const btnExportar = document.getElementById('btnExportar');
-    if (btnExportar) {
-        btnExportar.addEventListener('click', () => {
-            // Antes de exportar, sincroniza el HTML del editor con la sesión
-            const editor = document.getElementById('editor-container');
-            const currentHtml = editor.innerHTML;
+    // Cerrar menú contextual al hacer clic izquierdo en cualquier parte
+    // (no interfiere con handlers que llaman e.stopPropagation()).
+    document.addEventListener('click', (e) => {
+        try {
+            // Solo si es clic izquierdo (0)
+            if (e.button !== 0) return;
+            // Si no hay menú activo, nada que hacer
+            if (!activeMenu) return;
+            // Si el clic ocurrió dentro del propio menú, dejar que el handler lo procese
+            if (activeMenu.contains(e.target)) return;
+            closeActiveMenu();
+        } catch (err) {
+            // Silenciar errores menores
+        }
+    });
 
-            fetch("{{ route('pdf-analyzer.anonimize') }}", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                },
-                body: JSON.stringify({ html: currentHtml }),
-            }).then(() => {
-                document.getElementById('exportForm').submit();
-            }).catch(() => {
-                document.getElementById('exportForm').submit();
-            });
-        });
-    }
-
-    // ── Botón Justificado 100: aplicar/remover clase que fuerza 100 caracteres por renglón
-    const btnJustify100 = document.getElementById('btnJustify100');
-    if (btnJustify100) {
-        btnJustify100.addEventListener('click', () => {
+    // ── Anonimización: reemplazar spans por etiquetas editables de la tabla ──
+    const btnAnonimizar = document.getElementById('btnAnonimizar');
+    if (btnAnonimizar) {
+        btnAnonimizar.addEventListener('click', async () => {
             const editorEl = document.getElementById('editor-container');
             if (!editorEl) return;
-            const enabled = editorEl.classList.toggle('justify-100');
-            // Toggle button style
-            btnJustify100.classList.toggle('btn-primary', enabled);
-            btnJustify100.classList.toggle('btn-outline-secondary', !enabled);
 
-            // If CKEditor instance exists, force a reflow by resetting the data
+            // Disable and show spinner without altering the button label
+            btnAnonimizar.disabled = true;
+            if (!btnAnonimizar.querySelector('.anon-spinner')) {
+                const sp = document.createElement('span');
+                sp.className = 'spinner-border spinner-border-sm me-2 anon-spinner';
+                btnAnonimizar.prepend(sp);
+            }
+
             try {
-                if (window.CKEDITOR && CKEDITOR.instances && CKEDITOR.instances['editor-container']) {
-                    const inst = CKEDITOR.instances['editor-container'];
-                    const html = (typeof inst.getData === 'function') ? inst.getData() : editorEl.innerHTML;
-                    if (typeof inst.setData === 'function') inst.setData(html);
+                const rows = Array.from(document.querySelectorAll('.entity-row'));
+                if (!rows.length) {
+                    showToast('No hay entidades para anonimizar.', 'warning');
+                    return;
                 }
-            } catch (e) {
-                // ignore
+
+                // Procesar fila por fila, de arriba hacia abajo
+                for (const row of rows) {
+                    // Visual: marcar fila en proceso
+                    const originalBg = row.style.backgroundColor;
+                    row.style.backgroundColor = '#fff3cd';
+
+                    const input = row.querySelector('.entity-label-input');
+                    const etiqueta = input ? input.value.trim() : '';
+                    if (!etiqueta) {
+                        // Restaurar y continuar
+                        row.style.backgroundColor = originalBg;
+                        await new Promise(r => setTimeout(r, 60));
+                        continue;
+                    }
+
+                    // Obtener variantes desde data-attribute
+                    let variants = [];
+                    try { variants = JSON.parse(row.dataset.entityTexts || '[]').map(v => (v||'').trim()).filter(Boolean); } catch (e) { variants = []; }
+                    if (!variants.length) variants = [ (row.dataset.entityText || '').trim() ].filter(Boolean);
+
+                    // 1) Reemplazar spans que coincidan con las variantes
+                    const spans = Array.from(editorEl.querySelectorAll('.entity'));
+                    for (const s of spans) {
+                        try {
+                            const spanText = getSpanOwnText(s).trim();
+                            if (variants.includes(spanText)) {
+                                s.replaceWith(document.createTextNode(etiqueta));
+                            }
+                        } catch (e) {}
+                    }
+
+                    // 2) Reemplazar ocurrencias en nodos de texto (fuera de spans)
+                    const walker = document.createTreeWalker(editorEl, NodeFilter.SHOW_TEXT, null);
+                    const toReplace = [];
+                    while (walker.nextNode()) {
+                        const tn = walker.currentNode;
+                        const txt = tn.nodeValue;
+                        for (const variant of variants) {
+                            if (!variant) continue;
+                            let idx = txt.indexOf(variant);
+                            if (idx !== -1) {
+                                toReplace.push({ node: tn, variant });
+                                break; // procesar este textnode solo una vez por iteración
+                            }
+                        }
+                    }
+
+                    for (const item of toReplace) {
+                        const tn = item.node;
+                        if (!tn.parentNode) continue; // nodo ya eliminado del DOM
+                        const variant = item.variant;
+                        let txt = tn.nodeValue;
+                        // Reemplazar todas las ocurrencias del variant en este text node
+                        const parts = txt.split(variant);
+                        if (parts.length <= 1) continue;
+                        const frag = document.createDocumentFragment();
+                        for (let i = 0; i < parts.length; i++) {
+                            if (parts[i].length) frag.appendChild(document.createTextNode(parts[i]));
+                            if (i !== parts.length - 1) frag.appendChild(document.createTextNode(etiqueta));
+                        }
+                        tn.parentNode.replaceChild(frag, tn);
+                    }
+
+                    // Pequeña pausa para actualizar UI y que el usuario vea el progreso
+                    await new Promise(r => setTimeout(r, 80));
+                    // Restaurar estilo
+                    row.style.backgroundColor = originalBg;
+                }
+
+                // 3) Sincronizar el HTML resultante con la sesión (para exportar)
+                const updatedHtml = editorEl.innerHTML;
+                fetch("{{ route('pdf-analyzer.anonimize') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    },
+                    body: JSON.stringify({ html: updatedHtml }),
+                }).catch(() => {}); // sincronización en background, sin bloquear UI
+
+                showToast('Anonimización completada. Texto reemplazado según la tabla.', 'success');
+            } catch (err) {
+                showToast('No se pudo anonimizar: ' + err.message, 'danger');
+            } finally {
+                const sp2 = btnAnonimizar.querySelector('.anon-spinner');
+                if (sp2) sp2.remove();
+                btnAnonimizar.disabled = false;
+                // Ensure label remains unchanged
+                btnAnonimizar.textContent = 'Anonimizar';
             }
         });
     }
+
+    // Export feature removed: export button and form were deleted from the UI
+
+    // Justify feature removed (button and JS handler deleted)
 
     // ── Tabla de entidades agrupadas: etiquetas automáticas + acciones ────
     const LABEL_MAP = {
@@ -528,12 +861,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (input) input.value = `[${base} ${labelCounters[base]}]`;
     });
 
-    // 2. Inicializar tooltips Bootstrap
-    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
-        if (window.bootstrap?.Tooltip) new bootstrap.Tooltip(el, { trigger: 'hover' });
-    });
-
-    // Helper: texto visible del span (sin hijos como el entity-menu)
+    // 3. Funciones helper de entidades
     function getSpanOwnText(span) {
         return Array.from(span.childNodes)
             .filter(n => n.nodeType === Node.TEXT_NODE)
@@ -541,24 +869,18 @@ document.addEventListener('DOMContentLoaded', () => {
             .join('');
     }
 
-    // Helper: encontrar todos los spans de entidad cuyo texto coincida
     function findEntitySpans(entityKey) {
         const editor = document.getElementById('editor-container');
         if (!editor) return [];
         const spans = Array.from(editor.querySelectorAll('.entity'));
-
-        // If entityKey is an array of variants, match any
         if (Array.isArray(entityKey)) {
             const norms = entityKey.map(v => (v || '').trim());
             return spans.filter(s => norms.includes(getSpanOwnText(s).trim()));
         }
-
-        // otherwise treat as single string
         const key = (entityKey || '').trim();
         return spans.filter(s => getSpanOwnText(s).trim() === key);
     }
 
-    // Helper: given a span, find the grouped row variants that include its visible text
     function findVariantsForSpan(span) {
         if (!span) return [];
         const text = getSpanOwnText(span).trim();
@@ -569,35 +891,15 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const variants = JSON.parse(raw);
                 if (variants && variants.map(v => v.trim()).includes(text)) return variants;
-            } catch (e) {
-                // ignore parse errors
-            }
+            } catch (e) {}
         }
         return [text];
     }
 
-    // Helper: deshabilitar fila visualmente
-    function disableEntityRow(row) {
-        row.classList.add('entity-row-disabled');
-        row.querySelectorAll('input, button').forEach(el => { el.disabled = true; });
-    }
-
-    // 3. Botón IGNORAR en la tabla: reemplaza cada ocurrencia con texto plano (no tachado)
-    document.querySelectorAll('.btn-ignore-entity').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const row = btn.closest('.entity-row');
-            const raw = row.dataset.entityTexts;
-            let variants = [];
-            try { variants = JSON.parse(raw); } catch (e) { variants = [row.dataset.entityText]; }
-            findEntitySpans(variants).forEach(span => {
-                const plain = document.createTextNode(getSpanOwnText(span));
-                span.replaceWith(plain);
-            });
-            disableEntityRow(row);
-        });
+    // 4. Inicializar tooltips Bootstrap
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+        if (window.bootstrap?.Tooltip) new bootstrap.Tooltip(el, { trigger: 'hover' });
     });
-
-    // 5. Enlaces de salto: llevar al editor a la primera ocurrencia
     function placeCaretAfter(node) {
         try {
             const range = document.createRange();
@@ -700,7 +1002,44 @@ document.addEventListener('DOMContentLoaded', () => {
             const variants = findVariantsForSpan(span);
             const spans = findEntitySpans(variants);
             const idx = spans.indexOf(span);
-            if (idx >= 0) span.setAttribute('title', (idx + 1) + '/' + spans.length);
+            if (idx >= 0) {
+                // Try to obtain the entity type from the grouped table (preferred)
+                let displayLabel = null;
+                const text = getSpanOwnText(span).trim();
+                document.querySelectorAll('.entity-row').forEach(row => {
+                    const raw = row.dataset.entityTexts;
+                    if (!raw) return;
+                    try {
+                        const variantsList = JSON.parse(raw);
+                        if (Array.isArray(variantsList) && variantsList.map(v => v.trim()).includes(text)) {
+                            const rawLabel = row.dataset.label || '';
+                            displayLabel = (LABEL_MAP[rawLabel] || rawLabel) || displayLabel;
+                        }
+                    } catch (err) {
+                        // ignore
+                    }
+                });
+
+                // Fallback: infer from CSS class names (legacy)
+                if (!displayLabel) {
+                    const classMap = {
+                        'person': 'PERSONA',
+                        'org': 'ORGANIZACIÓN',
+                        'location': 'LUGAR',
+                        'date': 'FECHA',
+                        'dni': 'DNI',
+                        'email': 'EMAIL',
+                        'phone': 'TELÉFONO',
+                        'misc': 'OTRO'
+                    };
+                    for (const k in classMap) {
+                        if (span.classList.contains(k)) { displayLabel = classMap[k]; break; }
+                    }
+                }
+
+                const title = (displayLabel ? displayLabel + ' — ' : '') + (idx + 1) + '/' + spans.length;
+                span.setAttribute('title', title);
+            }
         });
 
         editor.addEventListener('mouseout', (e) => {
@@ -734,6 +1073,34 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Tooltip behavior is handled in the hover/click handlers above (group-aware)
+
+    // ── Función utilitaria: Toast de notificación ─────────────────────────
+    // Muestra un mensaje flotante breve en la esquina inferior derecha.
+    // type: 'success' | 'danger' | 'warning' | 'info'
+    function showToast(message, type = 'info') {
+        // Contenedor de toasts (crearlo si no existe)
+        let container = document.getElementById('toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toast-container';
+            container.style.cssText = 'position:fixed;bottom:1.5rem;right:1.5rem;z-index:10999;display:flex;flex-direction:column;gap:.5rem;';
+            document.body.appendChild(container);
+        }
+
+        // Crear el toast
+        const toast = document.createElement('div');
+        toast.className = `alert alert-${type} shadow py-2 px-3 mb-0`;
+        toast.style.cssText = 'min-width:260px;max-width:400px;font-size:.87rem;animation:fadeInUp .2s ease;';
+        toast.textContent = message;
+        container.appendChild(toast);
+
+        // Auto-eliminar después de 4 segundos
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transition = 'opacity .3s';
+            setTimeout(() => toast.remove(), 320);
+        }, 4000);
+    }
 
 });
 </script>

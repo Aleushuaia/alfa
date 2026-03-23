@@ -26,12 +26,23 @@ Route::get('/v2/ingresados_fuero', [DashboardController::class, 'ingresadosFuero
     ->name('ingresados_fuero.v2');
 
 // ── Analizador / Anonimizador de PDF ─────────────────────────────────────────
-Route::get('/',           [PdfAnalyzerController::class, 'showForm'])->name('pdf-analyzer.form');
+Route::get('/',           [PdfAnalyzerController::class, 'showForm'])->name('home');
 Route::get('/pdf-analyzer',           [PdfAnalyzerController::class, 'showForm'])->name('pdf-analyzer.form');
 
 Route::post('/pdf-analyzer/process',  [PdfAnalyzerController::class, 'processPdf'])->name('pdf-analyzer.process');
 Route::post('/pdf-analyzer/anonimize',[PdfAnalyzerController::class, 'anonimizeEntities'])->name('pdf-analyzer.anonimize');
+Route::post('/pdf-analyzer/analyze-text', [PdfAnalyzerController::class, 'analyzeText'])->name('pdf-analyzer.analyze-text');
+Route::post('/pdf-analyzer/blacklist', [PdfAnalyzerController::class, 'addToBlacklist'])->name('pdf-analyzer.add-blacklist');
 Route::get('/pdf-analyzer/export',    [PdfAnalyzerController::class, 'exportPdf'])->name('pdf-analyzer.export');
+
+// ── Gestión de Blacklist ───────────────────────────────────────────────────────
+Route::get('/blacklist',          [PdfAnalyzerController::class, 'blacklistIndex'])->name('blacklist.index');
+Route::delete('/blacklist/{id}',  [PdfAnalyzerController::class, 'blacklistDelete'])->name('blacklist.delete');
+
+// ── Gestión de Whitelist ──────────────────────────────────────────────────────
+Route::post('/pdf-analyzer/whitelist',  [PdfAnalyzerController::class, 'addToWhitelist'])->name('pdf-analyzer.add-whitelist');
+Route::get('/whitelist',                [PdfAnalyzerController::class, 'whitelistIndex'])->name('whitelist.index');
+Route::delete('/whitelist/{id}',        [PdfAnalyzerController::class, 'whitelistDelete'])->name('whitelist.delete');
 
 // ── Transcriptor Multimedia (Whisper) ─────────────────────────────────────────────
 Route::get('/transcripcion',          [TranscripcionController::class, 'index'])->name('transcripcion.index');

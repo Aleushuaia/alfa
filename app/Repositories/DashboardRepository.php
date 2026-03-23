@@ -35,6 +35,10 @@ class DashboardRepository
         $key = "dashboard.cards.{$mes}.{$anio}";
 
         return Cache::remember($key, $this->cacheTtl, function () use ($mes, $anio) {
+            if ($this->demo) {
+                return $this->demoResumenCards($mes, $anio);
+            }
+
             // rangos [start, end)
             $currentStart = date('Y-m-d 00:00:00', strtotime("$anio-$mes-01"));
             $currentEnd   = date('Y-m-d 00:00:00', strtotime($currentStart . ' +1 month'));
@@ -64,7 +68,12 @@ class DashboardRepository
                 $prevStart,    $prevEnd,    // notificaciones_prev
             ];
 
-            $row = DB::connection($this->connection)->select($sql, $params)[0] ?? null;
+            try {
+                $row = DB::connection($this->connection)->select($sql, $params)[0] ?? null;
+            } catch (\Exception $e) {
+                \Log::warning('DashboardRepository: DB no disponible, usando datos demo. ' . $e->getMessage());
+                return $this->demoResumenCards($mes, $anio);
+            }
 
             return $this->formatResumenCards($row);
         });
@@ -141,10 +150,15 @@ class DashboardRepository
                 LIMIT 10
             SQL;
 
-            $rows = DB::connection($this->connection)->select($sql, [
-                $mes, $anio, $mesPrev, $anioPrev,
-                $mes, $anio, $mesPrev, $anioPrev,
-            ]);
+            try {
+                $rows = DB::connection($this->connection)->select($sql, [
+                    $mes, $anio, $mesPrev, $anioPrev,
+                    $mes, $anio, $mesPrev, $anioPrev,
+                ]);
+            } catch (\Exception $e) {
+                \Log::warning('DashboardRepository: DB no disponible. ' . $e->getMessage());
+                return $this->demoExpedientesPorOrganismo();
+            }
 
             return [
                 'organismos' => array_column($rows, 'organismo'),
@@ -182,7 +196,12 @@ class DashboardRepository
                 ORDER BY cantidad DESC
             SQL;
 
-            $rows = DB::connection($this->connection)->select($sql, [$fechaDesde, $fechaHasta]);
+            try {
+                $rows = DB::connection($this->connection)->select($sql, [$fechaDesde, $fechaHasta]);
+            } catch (\Exception $e) {
+                \Log::warning('DashboardRepository: DB no disponible. ' . $e->getMessage());
+                return $this->demoActuacionesPorTipo();
+            }
 
             return [
                 'tipos'      => array_column($rows, 'tipo'),
@@ -220,7 +239,12 @@ class DashboardRepository
                 ORDER BY periodo ASC, cantidad DESC
             SQL;
 
-            $rows = DB::connection($this->connection)->select($sql, [$meses]);
+            try {
+                $rows = DB::connection($this->connection)->select($sql, [$meses]);
+            } catch (\Exception $e) {
+                \Log::warning('DashboardRepository: DB no disponible. ' . $e->getMessage());
+                return $this->demoEscritos($meses);
+            }
 
             // Transformar a series para ApexCharts
             $periodos = [];
@@ -267,7 +291,12 @@ class DashboardRepository
                 WHERE MONTH(fecha_enviado)=? AND YEAR(fecha_enviado)=?
                   AND deleted_at IS NULL
             SQL;
-            $total = DB::connection($this->connection)->select($totalSql, [$mes, $anio])[0]->total ?? 0;
+            try {
+                $total = DB::connection($this->connection)->select($totalSql, [$mes, $anio])[0]->total ?? 0;
+            } catch (\Exception $e) {
+                \Log::warning('DashboardRepository: DB no disponible. ' . $e->getMessage());
+                return $this->demoNotificaciones();
+            }
 
             // Agrupado por estado
             $sql = <<<SQL
@@ -356,7 +385,12 @@ class DashboardRepository
                 LIMIT ?
             SQL;
 
-            return DB::connection($this->connection)->select($sql, [$limite]);
+            try {
+                return DB::connection($this->connection)->select($sql, [$limite]);
+            } catch (\Exception $e) {
+                \Log::warning('DashboardRepository: DB no disponible. ' . $e->getMessage());
+                return $this->demoActividadReciente($limite);
+            }
         });
     }
 
