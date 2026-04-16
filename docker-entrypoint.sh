@@ -1,13 +1,42 @@
 #!/bin/bash
 set -e
 
-# ─── Esperar a que la BD esté disponible (opcional) ───────────────────────────
-# Solo si DB_SAE_HOST está definido y no estamos en modo demo
+# ─── Esperar a que PostgreSQL esté disponible ─────────────────────────────────
+if [ -n "${DB_PG_HOST}" ]; then
+    echo "[entrypoint] Esperando conexión a PostgreSQL: ${DB_PG_HOST}:${DB_PG_PORT:-5432}..."
+    PG_READY=false
+    for i in $(seq 1 30); do
+        if nc -z "${DB_PG_HOST}" "${DB_PG_PORT:-5432}" 2>/dev/null; then
+            echo "[entrypoint] PostgreSQL disponible."
+            PG_READY=true
+            break
+        fi
+        echo "[entrypoint] Intento $i/30 fallido, reintentando en 2s..."
+        sleep 2
+    done
+
+    # ─── Crear la base de datos si no existe ──────────────────────────────
+    if [ "$PG_READY" = true ] && [ -f /var/www/docker/create-db.php ]; then
+        echo "[entrypoint] Verificando/creando base de datos..."
+        php /var/www/docker/create-db.php
+    fi
+
+    # ─── Ejecutar migraciones pendientes ──────────────────────────────────
+    if [ "$PG_READY" = true ]; then
+        echo "[entrypoint] Ejecutando migraciones pendientes..."
+        cd /var/www
+        php artisan migrate --force --no-interaction 2>&1 || echo "[entrypoint] ADVERTENCIA: migrate falló (puede ser primera ejecución)."
+        echo "[entrypoint] Ejecutando seeders..."
+        php artisan db:seed --force --no-interaction 2>&1 || echo "[entrypoint] ADVERTENCIA: seed falló."
+    fi
+fi
+
+# ─── Esperar a que MySQL/MariaDB esté disponible (opcional) ───────────────────
 if [ "${DASHBOARD_DEMO}" != "true" ] && [ -n "${DB_SAE_HOST}" ]; then
-    echo "[entrypoint] Esperando conexión a la BD: ${DB_SAE_HOST}:${DB_SAE_PORT:-3306}..."
+    echo "[entrypoint] Esperando conexión a MySQL: ${DB_SAE_HOST}:${DB_SAE_PORT:-3306}..."
     for i in $(seq 1 30); do
         if nc -z "${DB_SAE_HOST}" "${DB_SAE_PORT:-3306}" 2>/dev/null; then
-            echo "[entrypoint] BD disponible."
+            echo "[entrypoint] MySQL disponible."
             break
         fi
         echo "[entrypoint] Intento $i/30 fallido, reintentando en 2s..."

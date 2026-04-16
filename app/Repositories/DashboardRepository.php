@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 /**
  * DashboardRepository
  *
- * Abstrae todas las consultas al sistema SAE Kayen.
+ * Abstrae todas las consultas al sistema Alfa.
  * Cuando DASHBOARD_DEMO=true devuelve datos ficticios realistas.
  */
 class DashboardRepository

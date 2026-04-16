@@ -1,9 +1,9 @@
 @extends('layouts.dashboard')
 
-@section('title', 'Dashboard — SAE Kayen')
+@section('title', 'Dashboard — Alfa')
 @section('page-title', 'Dashboard')
 @section('breadcrumb', 'Dashboard')
-@section('header-title', 'SAE Kayen — Panel de Control')
+@section('header-title', 'Alfa — Panel de Control')
 
 @push('styles')
 <style>

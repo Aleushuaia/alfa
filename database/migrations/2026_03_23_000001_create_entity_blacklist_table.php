@@ -8,18 +8,18 @@ use Illuminate\Support\Facades\Schema;
  * Migration: entity_blacklist
  *
  * Tabla de términos que deben ser ignorados por el analizador NLP
- * en futuros análisis. Se ejecuta sobre la conexión 'sae_kayen_pg'
- * (PostgreSQL — contenedor sae_postgres).
+ * en futuros análisis. Se ejecuta sobre la conexión 'alfa_pg'
+ * (PostgreSQL — contenedor alfa_postgres).
  *
  * Para ejecutar SOLO esta migration:
- *   php artisan migrate --path=database/migrations/2026_03_23_000001_create_entity_blacklist_table.php --database=sae_kayen_pg
+ *   php artisan migrate --path=database/migrations/2026_03_23_000001_create_entity_blacklist_table.php --database=alfa_pg
  */
 return new class extends Migration
 {
     /**
-     * Usar la conexión PostgreSQL del contenedor sae_postgres.
+     * Usar la conexión PostgreSQL del contenedor alfa_postgres.
      */
-    protected $connection = 'sae_kayen_pg';
+    protected $connection = 'alfa_pg';
 
     // ─────────────────────────────────────────────────────────────────────────
     public function up(): void

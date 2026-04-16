@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
  * Representa un término que debe ser excluido (ignorado) por el
  * analizador NLP en futuros análisis de texto.
  *
- * Utiliza la conexión PostgreSQL 'sae_kayen_pg' (contenedor sae_postgres).
+ * Utiliza la conexión PostgreSQL 'alfa_pg' (contenedor alfa_postgres).
  *
  * Columnas relevantes:
  *   - term           : Texto a ignorar (ej: "Juan García")
@@ -24,8 +24,8 @@ use Illuminate\Database\Eloquent\Model;
  */
 class EntityBlacklist extends Model
 {
-    // ── Conexión y tabla ──────────────────────────────────────────────────────
-    protected $connection = 'sae_kayen_pg';
+    // ── Conexión y tabla ──────────────────────────────────────────────────────────
+    protected $connection = 'alfa_pg';
     protected $table      = 'entity_blacklist';
 
     // ── Asignación masiva segura ──────────────────────────────────────────────

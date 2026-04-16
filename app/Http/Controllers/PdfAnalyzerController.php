@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\EntityBlacklist;
 use App\Models\EntityWhitelist;
+use App\Models\UserEntityColor;
 use App\Services\NlpEntityService;
 use App\Services\PdfTextExtractorService;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -22,7 +23,10 @@ class PdfAnalyzerController extends Controller
     // ─────────────────────────────────────────────────────────────────────────
     public function showForm()
     {
-        return view('pdf.analyzer');
+        return view('pdf.analyzer', [
+            'entityColors' => $this->getUserEntityColors(),
+            'entityTypes'  => EntityConfigController::getEntityTypes(),
+        ]);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -31,8 +35,11 @@ class PdfAnalyzerController extends Controller
     public function processPdf(Request $request)
     {
         $request->validate([
-            'pdf' => ['required', 'file', 'mimes:pdf', 'max:20480'], // 20 MB
+            'pdf'           => ['required', 'file', 'mimes:pdf', 'max:20480'], // 20 MB
+            'entity_filter' => ['nullable', 'string'],
         ]);
+
+        $entityFilter = $request->input('entity_filter');
 
         // 1. Guardar temporalmente
         $path    = $request->file('pdf')->store('pdf-analyzer-tmp', 'local');
@@ -51,6 +58,12 @@ class PdfAnalyzerController extends Controller
             Storage::disk('local')->delete($path);
         }
 
+        // 3b. Filter by selected entity types if provided
+        if ($entityFilter) {
+            $allowedTypes = array_map('trim', explode(',', $entityFilter));
+            $result = $this->filterByEntityTypes($result, $allowedTypes);
+        }
+
         // 4. Filtrar entidades que estén en la lista negra (blacklist)
         $filtered = $this->filterEntitiesAndHtml(
             $result['entities'] ?? [],
@@ -67,6 +80,8 @@ class PdfAnalyzerController extends Controller
             'analyzedHtml'    => $final['html'],
             'entities'        => $final['entities'],
             'groupedEntities' => $this->buildGroupedEntities($final['entities']),
+            'entityColors'    => $this->getUserEntityColors(),
+            'entityTypes'     => EntityConfigController::getEntityTypes(),
         ]);
     }
 
@@ -76,15 +91,23 @@ class PdfAnalyzerController extends Controller
     public function analyzeText(Request $request)
     {
         $request->validate([
-            'text' => ['required', 'string', 'min:10', 'max:200000'],
+            'text'          => ['required', 'string', 'min:10', 'max:200000'],
+            'entity_filter' => ['nullable', 'string'],
         ]);
 
         $text = trim($request->input('text'));
+        $entityFilter = $request->input('entity_filter');
 
         try {
             $result = $this->nlp->analyze($text);
         } catch (\RuntimeException $e) {
             return back()->withErrors(['pdf' => $e->getMessage()]);
+        }
+
+        // Filter by selected entity types if provided
+        if ($entityFilter) {
+            $allowedTypes = array_map('trim', explode(',', $entityFilter));
+            $result = $this->filterByEntityTypes($result, $allowedTypes);
         }
 
         // Filtrar entidades que estén en la lista negra (blacklist)
@@ -103,6 +126,8 @@ class PdfAnalyzerController extends Controller
             'analyzedHtml'    => $final['html'],
             'entities'        => $final['entities'],
             'groupedEntities' => $this->buildGroupedEntities($final['entities']),
+            'entityColors'    => $this->getUserEntityColors(),
+            'entityTypes'     => EntityConfigController::getEntityTypes(),
         ]);
     }
 
@@ -639,5 +664,86 @@ class PdfAnalyzerController extends Controller
             \Log::error('Error al eliminar de blacklist: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Error al eliminar.'], 500);
         }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // filterByEntityTypes — Filters NLP result to only include selected types
+    // ─────────────────────────────────────────────────────────────────────────
+    private function filterByEntityTypes(array $result, array $allowedTypes): array
+    {
+        // Normalize allowed types to uppercase
+        $allowed = array_map('strtoupper', $allowedTypes);
+
+        // Map synonyms: PERSON→PER, GPE→LOC
+        $typeMap = [
+            'PER' => ['PER', 'PERSON'],
+            'ORG' => ['ORG'],
+            'LOC' => ['LOC', 'GPE'],
+            'DATE' => ['DATE'],
+            'DNI' => ['DNI'],
+            'EMAIL' => ['EMAIL'],
+            'PHONE' => ['PHONE'],
+            'MISC' => ['MISC', 'PATENTE'],
+        ];
+
+        // Build a set of all raw labels that are allowed
+        $allowedRaw = [];
+        foreach ($allowed as $type) {
+            if (isset($typeMap[$type])) {
+                $allowedRaw = array_merge($allowedRaw, $typeMap[$type]);
+            } else {
+                $allowedRaw[] = $type;
+            }
+        }
+
+        // Filter entities
+        $entities = array_filter($result['entities'] ?? [], function ($ent) use ($allowedRaw) {
+            return in_array(strtoupper($ent['label'] ?? ''), $allowedRaw, true);
+        });
+
+        // Remove HTML spans for non-allowed entity types
+        $html = $result['html'] ?? '';
+        $cssMap = [
+            'PER' => 'person', 'PERSON' => 'person',
+            'ORG' => 'org',
+            'LOC' => 'location', 'GPE' => 'location',
+            'DATE' => 'date',
+            'DNI' => 'dni',
+            'EMAIL' => 'email',
+            'PHONE' => 'phone',
+            'MISC' => 'misc', 'PATENTE' => 'misc',
+        ];
+
+        // Find CSS classes to REMOVE (not in allowed)
+        $classesToRemove = [];
+        foreach ($cssMap as $rawLabel => $cssClass) {
+            if (!in_array($rawLabel, $allowedRaw, true)) {
+                $classesToRemove[$cssClass] = true;
+            }
+        }
+
+        foreach (array_keys($classesToRemove) as $cssClass) {
+            $html = preg_replace_callback(
+                '/<span[^>]*class="entity\s+' . preg_quote($cssClass, '/') . '"[^>]*>(.*?)<\/span>/is',
+                fn($m) => $m[1],
+                $html
+            );
+        }
+
+        return [
+            'html' => $html,
+            'entities' => array_values($entities),
+        ];
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // getUserEntityColors — Get entity color map for the authenticated user
+    // ─────────────────────────────────────────────────────────────────────────
+    private function getUserEntityColors(): array
+    {
+        if (!auth()->check()) {
+            return EntityConfigController::getUserColors(0);
+        }
+        return EntityConfigController::getUserColors(auth()->id());
     }
 }

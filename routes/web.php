@@ -1,53 +1,89 @@
 <?php
 
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EntityConfigController;
 use App\Http\Controllers\OcrExtractorController;
 use App\Http\Controllers\PdfAnalyzerController;
 use App\Http\Controllers\TranscripcionController;
+use App\Http\Controllers\ThemeConfigController;
+use App\Http\Controllers\UserManagementController;
 use Illuminate\Support\Facades\Route;
 
+// ── Autenticación ─────────────────────────────────────────────────────────────
+Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-// ── Dashboard ─────────────────────────────────────────────────────────────────
-Route::get('/dashboard', [DashboardController::class, 'index'])
-    ->name('dashboard');
+// ── Redirect raíz al login o al home ─────────────────────────────────────────
+Route::get('/', function () {
+    return auth()->check()
+        ? redirect()->route('pdf-analyzer.form')
+        : redirect()->route('login');
+})->name('home');
 
-Route::get('/ingresados_fuero', [DashboardController::class, 'ingresadosFuero'])
-    ->name('ingresados_fuero'); 
-    
+// ══════════════════════════════════════════════════════════════════════════════
+// Rutas protegidas — requieren autenticación
+// ══════════════════════════════════════════════════════════════════════════════
+Route::middleware('auth')->group(function () {
 
-Route::get('/dashboard/actuaciones', [DashboardController::class, 'actuaciones'])
-    ->name('dashboard.actuaciones');
+    // ── Dashboard ─────────────────────────────────────────────────────────
+    Route::get('/dashboard', [DashboardController::class, 'index'])
+        ->name('dashboard');
 
-// ── Dashboard V2 ──────────────────────────────────────────────────────────────
-Route::get('/v2/dashboard', [DashboardController::class, 'indexV2'])
-    ->name('dashboard.v2');
+    Route::get('/ingresados_fuero', [DashboardController::class, 'ingresadosFuero'])
+        ->name('ingresados_fuero');
 
-Route::get('/v2/ingresados_fuero', [DashboardController::class, 'ingresadosFueroV2'])
-    ->name('ingresados_fuero.v2');
+    Route::get('/dashboard/actuaciones', [DashboardController::class, 'actuaciones'])
+        ->name('dashboard.actuaciones');
 
-// ── Analizador / Anonimizador de PDF ─────────────────────────────────────────
-Route::get('/',           [PdfAnalyzerController::class, 'showForm'])->name('home');
-Route::get('/pdf-analyzer',           [PdfAnalyzerController::class, 'showForm'])->name('pdf-analyzer.form');
+    // ── Dashboard V2 ──────────────────────────────────────────────────────
+    Route::get('/v2/dashboard', [DashboardController::class, 'indexV2'])
+        ->name('dashboard.v2');
 
-Route::post('/pdf-analyzer/process',  [PdfAnalyzerController::class, 'processPdf'])->name('pdf-analyzer.process');
-Route::post('/pdf-analyzer/anonimize',[PdfAnalyzerController::class, 'anonimizeEntities'])->name('pdf-analyzer.anonimize');
-Route::post('/pdf-analyzer/analyze-text', [PdfAnalyzerController::class, 'analyzeText'])->name('pdf-analyzer.analyze-text');
-Route::post('/pdf-analyzer/blacklist', [PdfAnalyzerController::class, 'addToBlacklist'])->name('pdf-analyzer.add-blacklist');
-Route::get('/pdf-analyzer/export',    [PdfAnalyzerController::class, 'exportPdf'])->name('pdf-analyzer.export');
+    Route::get('/v2/ingresados_fuero', [DashboardController::class, 'ingresadosFueroV2'])
+        ->name('ingresados_fuero.v2');
 
-// ── Gestión de Blacklist ───────────────────────────────────────────────────────
-Route::get('/blacklist',          [PdfAnalyzerController::class, 'blacklistIndex'])->name('blacklist.index');
-Route::delete('/blacklist/{id}',  [PdfAnalyzerController::class, 'blacklistDelete'])->name('blacklist.delete');
+    // ── Analizador / Anonimizador de PDF ─────────────────────────────────
+    Route::get('/pdf-analyzer', [PdfAnalyzerController::class, 'showForm'])->name('pdf-analyzer.form');
+    Route::post('/pdf-analyzer/process', [PdfAnalyzerController::class, 'processPdf'])->name('pdf-analyzer.process');
+    Route::post('/pdf-analyzer/anonimize', [PdfAnalyzerController::class, 'anonimizeEntities'])->name('pdf-analyzer.anonimize');
+    Route::post('/pdf-analyzer/analyze-text', [PdfAnalyzerController::class, 'analyzeText'])->name('pdf-analyzer.analyze-text');
+    Route::post('/pdf-analyzer/blacklist', [PdfAnalyzerController::class, 'addToBlacklist'])->name('pdf-analyzer.add-blacklist');
+    Route::get('/pdf-analyzer/export', [PdfAnalyzerController::class, 'exportPdf'])->name('pdf-analyzer.export');
 
-// ── Gestión de Whitelist ──────────────────────────────────────────────────────
-Route::post('/pdf-analyzer/whitelist',  [PdfAnalyzerController::class, 'addToWhitelist'])->name('pdf-analyzer.add-whitelist');
-Route::get('/whitelist',                [PdfAnalyzerController::class, 'whitelistIndex'])->name('whitelist.index');
-Route::delete('/whitelist/{id}',        [PdfAnalyzerController::class, 'whitelistDelete'])->name('whitelist.delete');
+    // ── Gestión de Blacklist ───────────────────────────────────────────────
+    Route::get('/blacklist', [PdfAnalyzerController::class, 'blacklistIndex'])->name('blacklist.index');
+    Route::delete('/blacklist/{id}', [PdfAnalyzerController::class, 'blacklistDelete'])->name('blacklist.delete');
 
-// ── Transcriptor Multimedia (Whisper) ─────────────────────────────────────────────
-Route::get('/transcripcion',          [TranscripcionController::class, 'index'])->name('transcripcion.index');
-Route::post('/transcripcion/procesar', [TranscripcionController::class, 'transcribir'])->name('transcripcion.procesar');
+    // ── Gestión de Whitelist ──────────────────────────────────────────────
+    Route::post('/pdf-analyzer/whitelist', [PdfAnalyzerController::class, 'addToWhitelist'])->name('pdf-analyzer.add-whitelist');
+    Route::get('/whitelist', [PdfAnalyzerController::class, 'whitelistIndex'])->name('whitelist.index');
+    Route::delete('/whitelist/{id}', [PdfAnalyzerController::class, 'whitelistDelete'])->name('whitelist.delete');
 
-// ── Extractor de Texto via OCR (Tesseract) ────────────────────────────────────────
-Route::get('/ocr-extractor',          [OcrExtractorController::class, 'index'])->name('pdf-extractor.index');
-Route::post('/ocr-extractor/extract', [OcrExtractorController::class, 'extract'])->name('pdf-extractor.extract');
+    // ── Transcriptor Multimedia (Whisper) ─────────────────────────────────
+    Route::get('/transcripcion', [TranscripcionController::class, 'index'])->name('transcripcion.index');
+    Route::post('/transcripcion/procesar', [TranscripcionController::class, 'transcribir'])->name('transcripcion.procesar');
+
+    // ── Extractor de Texto via OCR (Tesseract) ───────────────────────────
+    Route::get('/ocr-extractor', [OcrExtractorController::class, 'index'])->name('pdf-extractor.index');
+    Route::post('/ocr-extractor/extract', [OcrExtractorController::class, 'extract'])->name('pdf-extractor.extract');
+
+    // ── Gestión de entidades (colores por usuario) ──────────────────────
+    Route::get('/entity-config', [EntityConfigController::class, 'index'])->name('entity-config.index');
+    Route::post('/entity-config', [EntityConfigController::class, 'save'])->name('entity-config.save');
+
+    // ── Colores del tema (por usuario) ──────────────────────────────────
+    Route::get('/theme-config', [ThemeConfigController::class, 'index'])->name('theme-config.index');
+    Route::post('/theme-config', [ThemeConfigController::class, 'save'])->name('theme-config.save');
+    Route::get('/theme-config/reset', [ThemeConfigController::class, 'reset'])->name('theme-config.reset');
+    Route::get('/api/user-theme-colors', [ThemeConfigController::class, 'getUserColors'])->name('api.user-theme-colors');
+
+    // ── Ajustes (solo administrador) ─────────────────────────────────────
+    Route::middleware('role:administrador')->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/users', [UserManagementController::class, 'index'])->name('users.index');
+        Route::post('/users', [UserManagementController::class, 'store'])->name('users.store');
+        Route::put('/users/{user}', [UserManagementController::class, 'update'])->name('users.update');
+        Route::delete('/users/{user}', [UserManagementController::class, 'destroy'])->name('users.destroy');
+    });
+});

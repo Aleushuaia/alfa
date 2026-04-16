@@ -1,5 +1,5 @@
 /**
- * SAE Kayen Dashboard — Entry point JavaScript
+ * Alfa — Entry point JavaScript
  */
 
 // Bootstrap 5

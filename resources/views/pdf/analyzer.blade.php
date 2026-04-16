@@ -1,6 +1,6 @@
 @extends('layouts.dashboard')
 
-@section('title', 'Analizador de PDF — SAE Kayen')
+@section('title', 'Analizador de PDF — Alfa')
 @section('page-title', 'Análisis y anonimización de documentos PDF')
 @section('breadcrumb', 'Análisis de PDF')
 
@@ -15,27 +15,27 @@
         position: relative;
         display: inline;
     }
-    .entity.person   { background: #ffcccc; }
-    .entity.org      { background: #cce5ff; }
-    .entity.location { background: #ccffcc; }
-    .entity.date     { background: #ffe0b3; }
-    .entity.dni      { background: #e0e0e0; }
-    .entity.email    { background: #ccf2ff; }
-    .entity.phone    { background: #ffffcc; }
-    .entity.misc     { background: #e0ccff; }
+    .entity.person   { background: {{ $entityColors['PER'] ?? '#ffcccc' }}; }
+    .entity.org      { background: {{ $entityColors['ORG'] ?? '#cce5ff' }}; }
+    .entity.location { background: {{ $entityColors['LOC'] ?? '#ccffcc' }}; }
+    .entity.date     { background: {{ $entityColors['DATE'] ?? '#ffe0b3' }}; }
+    .entity.dni      { background: {{ $entityColors['DNI'] ?? '#e0e0e0' }}; }
+    .entity.email    { background: {{ $entityColors['EMAIL'] ?? '#ccf2ff' }}; }
+    .entity.phone    { background: {{ $entityColors['PHONE'] ?? '#ffffcc' }}; }
+    .entity.misc     { background: {{ $entityColors['MISC'] ?? '#e0ccff' }}; }
 
     /* ── Menú flotante al hacer clic derecho ─────────────── */
     .entity-menu {
         display: none;
         position: absolute;
         z-index: 9999;
-        background: #fff;
-        border: 1px solid #ccc;
+        background: var(--card-bg, #fff);
+        border: 1px solid var(--card-border, #ccc);
         border-radius: 6px;
         box-shadow: 0 4px 16px rgba(0,0,0,.18);
         padding: 4px 0;
         width: max-content;
-        bottom: calc(100% + 5px);  /* aparece ENCIMA de la entidad */
+        bottom: calc(100% + 5px);
         top: auto;
         left: 50%;
         transform: translateX(-50%);
@@ -49,7 +49,7 @@
         left: 50%;
         transform: translateX(-50%);
         border: 5px solid transparent;
-        border-top-color: #ccc;
+        border-top-color: var(--card-border, #ccc);
     }
     .entity-menu[data-dir="up"]::before,
     .entity-menu:not([data-dir])::before {
@@ -59,7 +59,7 @@
         left: 50%;
         transform: translateX(-50%);
         border: 5px solid transparent;
-        border-top-color: #fff;
+        border-top-color: var(--card-bg, #fff);
         z-index: 1;
     }
     /* Flecha apunta hacia arriba cuando el menú está debajo (dir=down) */
@@ -71,7 +71,7 @@
         left: 50%;
         transform: translateX(-50%);
         border: 5px solid transparent;
-        border-bottom-color: #ccc;
+        border-bottom-color: var(--card-border, #ccc);
     }
     .entity-menu[data-dir="down"]::before {
         content: '';
@@ -81,7 +81,7 @@
         left: 50%;
         transform: translateX(-50%);
         border: 5px solid transparent;
-        border-bottom-color: #fff;
+        border-bottom-color: var(--card-bg, #fff);
         z-index: 1;
     }
     .entity-menu button {
@@ -93,13 +93,14 @@
         text-align: left;
         font-size: .84rem;
         cursor: pointer;
-        white-space: nowrap;  /* siempre en un solo renglón */
+        white-space: nowrap;
+        color: var(--body-color, #333);
     }
-    .entity-menu button:hover { background: #f0f4ff; }
+    .entity-menu button:hover { background: var(--table-hover-bg, #f0f4ff); }
     /* Separador visual entre opciones del menú */
     .entity-menu hr {
         margin: 3px 0;
-        border-color: #eee;
+        border-color: var(--card-border, #eee);
     }
     /* Estado de carga del botón blacklist */
     .entity-menu button.loading {
@@ -111,27 +112,28 @@
     .entity-row-disabled td { opacity: .38; }
     .entity-row-disabled input,
     .entity-row-disabled button { pointer-events: none !important; }
-    .entity-row-disabled { background: #f8f8f8 !important; }
+    .entity-row-disabled { background: var(--badge-light-bg, #f8f8f8) !important; }
 
     /* ── Editor ─────────────────────────────────────────── */
     #editor-container {
-        border: 1px solid #dee2e6;
+        border: 1px solid var(--input-border, #dee2e6);
         border-radius: .375rem;
         min-height: 420px;
         max-height: 620px;
         overflow-y: auto;
         padding: 1rem 1.25rem;
-        background: #fefefe;
+        background: var(--input-bg, #fefefe);
         line-height: 1.8;
         font-size: .95rem;
         max-width: 100ch;
         overflow-wrap: break-word;
         word-break: break-word;
+        color: var(--body-color, #1e293b);
     }
     /* Placeholder cuando el editor está vacío */
     #editor-container[data-empty="true"]::before {
         content: attr(data-placeholder);
-        color: #bbb;
+        color: var(--input-placeholder, #bbb);
         font-style: italic;
         pointer-events: none;
         display: block;
@@ -145,6 +147,59 @@
         border-radius: 3px;
         margin-right: 5px;
         vertical-align: middle;
+    }
+
+    /* ── Entity type switches ────────────────────────────── */
+    .entity-type-row {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        padding: .25rem 0;
+    }
+    .entity-type-switch {
+        position: relative;
+        width: 32px;
+        height: 18px;
+        flex-shrink: 0;
+    }
+    .entity-type-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+    .entity-type-slider {
+        position: absolute;
+        inset: 0;
+        background: #ccc;
+        border-radius: 18px;
+        cursor: pointer;
+        transition: background .2s;
+    }
+    .entity-type-slider::before {
+        content: '';
+        position: absolute;
+        width: 14px;
+        height: 14px;
+        left: 2px;
+        bottom: 2px;
+        background: #fff;
+        border-radius: 50%;
+        transition: transform .2s;
+    }
+    .entity-type-switch input:checked + .entity-type-slider {
+        background: var(--accent, #6c5ce7);
+    }
+    .entity-type-switch input:checked + .entity-type-slider::before {
+        transform: translateX(14px);
+    }
+    .entity-type-label {
+        font-size: .82rem;
+        cursor: pointer;
+        user-select: none;
+    }
+    .entity-type-label.disabled {
+        opacity: .4;
+        text-decoration: line-through;
     }
     /* Mantener el panel de texto fijo y hacer la lista de entidades scrollable */
     .entities-scroll {
@@ -179,6 +234,28 @@
         padding: 0 3px;
     }
     /* (Removed) Justified helper removed — feature deprecated */
+
+    /* ── 80vh panels ─────────────────────────────────────── */
+    .row.g-3 > .col-lg-3,
+    .row.g-3 > .col-lg-9 {
+        min-height: 80vh;
+        display: flex;
+        flex-direction: column;
+    }
+    .row.g-3 > .col-lg-9 > .card {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+    .row.g-3 > .col-lg-9 > .card > .card-body {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+    #editor-container {
+        flex: 1;
+        min-height: 300px;
+    }
 </style>
 @endpush
 
@@ -208,6 +285,7 @@
                       enctype="multipart/form-data"
                       id="uploadForm">
                     @csrf
+                    <input type="hidden" name="entity_filter" id="uploadEntityFilterInput">
                     <div class="mb-3">
                         <label class="form-label small fw-semibold">Archivo PDF (máx. 20 MB)</label>
                         <input type="file"
@@ -223,22 +301,46 @@
             </div>
         </div>
 
-        {{-- Leyenda de colores --}}
+        {{-- Tipos de entidades (con switches para filtrar) --}}
         <div class="card shadow-sm">
             <div class="card-header fw-semibold">
-                <i class="fas fa-palette me-2"></i>Leyenda
+                <i class="fas fa-palette me-2"></i>Tipos de entidades
             </div>
             <div class="card-body p-2">
                 <table class="table table-sm table-borderless mb-0" style="font-size:.82rem;">
-                    <tr><td><span class="legend-dot" style="background:#ffcccc"></span>Persona</td></tr>
-                    <tr><td><span class="legend-dot" style="background:#cce5ff"></span>Organización</td></tr>
-                    <tr><td><span class="legend-dot" style="background:#ccffcc"></span>Lugar</td></tr>
-                    <tr><td><span class="legend-dot" style="background:#ffe0b3"></span>Fecha</td></tr>
-                    <tr><td><span class="legend-dot" style="background:#e0e0e0"></span>DNI</td></tr>
-                    <tr><td><span class="legend-dot" style="background:#ccf2ff"></span>Email</td></tr>
-                    <tr><td><span class="legend-dot" style="background:#ffffcc"></span>Teléfono</td></tr>
-                    <tr><td><span class="legend-dot" style="background:#e0ccff"></span>Otros</td></tr>
+                    @php
+                        $entityTypesList = [
+                            ['type' => 'PER',   'css' => 'person',   'label' => 'Persona'],
+                            ['type' => 'ORG',   'css' => 'org',      'label' => 'Organización'],
+                            ['type' => 'LOC',   'css' => 'location', 'label' => 'Lugar'],
+                            ['type' => 'DATE',  'css' => 'date',     'label' => 'Fecha'],
+                            ['type' => 'DNI',   'css' => 'dni',      'label' => 'DNI'],
+                            ['type' => 'EMAIL', 'css' => 'email',    'label' => 'Email'],
+                            ['type' => 'PHONE', 'css' => 'phone',    'label' => 'Teléfono'],
+                            ['type' => 'MISC',  'css' => 'misc',     'label' => 'Otros'],
+                        ];
+                    @endphp
+                    @foreach($entityTypesList as $et)
+                    <tr>
+                        <td class="entity-type-row">
+                            <label class="entity-type-switch" title="Activar/desactivar {{ $et['label'] }}">
+                                <input type="checkbox"
+                                       class="entity-type-checkbox"
+                                       data-entity-type="{{ $et['type'] }}"
+                                       checked>
+                                <span class="entity-type-slider"></span>
+                            </label>
+                            <span class="legend-dot" style="background:{{ $entityColors[$et['type']] ?? '#ddd' }}"></span>
+                            <span class="entity-type-label" data-entity-type="{{ $et['type'] }}">{{ $et['label'] }}</span>
+                        </td>
+                    </tr>
+                    @endforeach
                 </table>
+                <div class="d-flex gap-2 mt-2" style="font-size:.72rem;">
+                    <a href="#" id="btnSelectAll" class="text-decoration-none">Todas</a>
+                    <span class="text-muted">|</span>
+                    <a href="#" id="btnSelectNone" class="text-decoration-none">Ninguna</a>
+                </div>
             </div>
         </div>
 
@@ -277,6 +379,7 @@
                       id="analyzeTextForm">
                     @csrf
                     <textarea name="text" id="analyzeTextInput" style="display:none"></textarea>
+                    <input type="hidden" name="entity_filter" id="entityFilterInput">
                 </form>
             </div>
         </div>
@@ -418,11 +521,93 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
 
+    // ── Entity type switches: Select All / Select None ───────────────────
+    const entityCheckboxes = document.querySelectorAll('.entity-type-checkbox');
+
+    function getSelectedEntityTypes() {
+        return Array.from(entityCheckboxes)
+            .filter(cb => cb.checked)
+            .map(cb => cb.dataset.entityType);
+    }
+
+    function syncEntityFilterInputs() {
+        const selected = getSelectedEntityTypes();
+        const val = selected.join(',');
+        const filterInput = document.getElementById('entityFilterInput');
+        const uploadFilterInput = document.getElementById('uploadEntityFilterInput');
+        if (filterInput) filterInput.value = val;
+        if (uploadFilterInput) uploadFilterInput.value = val;
+    }
+
+    // Update label styling when toggling
+    entityCheckboxes.forEach(cb => {
+        cb.addEventListener('change', () => {
+            const label = document.querySelector(`.entity-type-label[data-entity-type="${cb.dataset.entityType}"]`);
+            if (label) {
+                label.classList.toggle('disabled', !cb.checked);
+            }
+            syncEntityFilterInputs();
+        });
+    });
+
+    // Select All / None buttons
+    document.getElementById('btnSelectAll')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        entityCheckboxes.forEach(cb => {
+            cb.checked = true;
+            const label = document.querySelector(`.entity-type-label[data-entity-type="${cb.dataset.entityType}"]`);
+            if (label) label.classList.remove('disabled');
+        });
+        syncEntityFilterInputs();
+    });
+
+    document.getElementById('btnSelectNone')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        entityCheckboxes.forEach(cb => {
+            cb.checked = false;
+            const label = document.querySelector(`.entity-type-label[data-entity-type="${cb.dataset.entityType}"]`);
+            if (label) label.classList.add('disabled');
+        });
+        syncEntityFilterInputs();
+    });
+
+    // Initialize filter inputs — restore from sessionStorage
+    const savedFilters = sessionStorage.getItem('alfa-entity-filters');
+    if (savedFilters) {
+        try {
+            const saved = JSON.parse(savedFilters);
+            entityCheckboxes.forEach(cb => {
+                const type = cb.dataset.entityType;
+                if (type in saved) {
+                    cb.checked = saved[type];
+                    const label = document.querySelector(`.entity-type-label[data-entity-type="${type}"]`);
+                    if (label) label.classList.toggle('disabled', !cb.checked);
+                }
+            });
+        } catch(e) {}
+    }
+    syncEntityFilterInputs();
+
+    // Save entity filter state to sessionStorage on every change
+    function saveEntityFiltersToSession() {
+        const state = {};
+        entityCheckboxes.forEach(cb => { state[cb.dataset.entityType] = cb.checked; });
+        sessionStorage.setItem('alfa-entity-filters', JSON.stringify(state));
+    }
+    entityCheckboxes.forEach(cb => cb.addEventListener('change', saveEntityFiltersToSession));
+
     // ── Loader en el botón Analizar (PDF) ────────────────────────────────
     const uploadForm = document.getElementById('uploadForm');
     const btnAnalizar = document.getElementById('btnAnalizar');
     if (uploadForm) {
-        uploadForm.addEventListener('submit', () => {
+        uploadForm.addEventListener('submit', (e) => {
+            const selected = getSelectedEntityTypes();
+            if (selected.length === 0) {
+                e.preventDefault();
+                showToast('Seleccione al menos un tipo de entidad para analizar.', 'warning');
+                return;
+            }
+            syncEntityFilterInputs();
             if (btnAnalizar) {
                 btnAnalizar.disabled = true;
                 btnAnalizar.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Procesando…';
@@ -509,6 +694,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            // Check at least one entity type is selected
+            const selected = getSelectedEntityTypes();
+            if (selected.length === 0) {
+                showToast('Seleccione al menos un tipo de entidad para analizar.', 'warning');
+                return;
+            }
+
+            syncEntityFilterInputs();
             input.value = text;
             btnAnalizeText.disabled = true;
             btnAnalizeText.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Analizando…';

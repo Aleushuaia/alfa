@@ -7,6 +7,23 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 
 <script>
+    /* ── Theme toggle (switch) ──────────────────────────────────────── */
+    (function() {
+        const html = document.documentElement;
+        const stored = localStorage.getItem('alfa-theme') || 'light';
+        html.setAttribute('data-theme', stored);
+
+        const sw = document.getElementById('darkModeSwitch');
+        if (sw) {
+            sw.checked = (stored === 'dark');
+            sw.addEventListener('change', () => {
+                const next = sw.checked ? 'dark' : 'light';
+                html.setAttribute('data-theme', next);
+                localStorage.setItem('alfa-theme', next);
+            });
+        }
+    })();
+
     /* ── Sidebar mobile ─────────────────────────────────────────── */
     const sidebar  = document.getElementById('sidebar');
     const overlay  = document.getElementById('sidebar-overlay');

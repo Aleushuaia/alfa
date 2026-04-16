@@ -1,8 +1,7 @@
-﻿# SAE Kayen Dashboard
+﻿# Alfa — Colaborador Inteligente
 
-Panel de control para el Sistema de Actuaciones y Expedientes (SAE Kayen),
-construido con **Laravel 11**, **AdminLTE 4**, **ApexCharts** y **Alpine.js**,
-totalmente dockerizado.
+Plataforma de procesamiento de texto, anonimización y gestión documental,
+construida con **Laravel 11**, totalmente dockerizada.
 
 ---
 
@@ -54,7 +53,7 @@ El dashboard estara disponible en: **http://localhost:8080/dashboard**
 
 ## 3. Configurar el .env para la BD real
 
-Editar el archivo .env con los datos de conexion a SAE Kayen:
+Editar el archivo .env con los datos de conexión a PostgreSQL:
 
 `env
 # Deshabilitar modo demo
@@ -71,8 +70,8 @@ DB_SAE_PASSWORD=tu_password
 # (opcional) Conexion PostgreSQL
 DB_PG_HOST=192.168.1.Y
 DB_PG_PORT=5432
-DB_PG_DATABASE=sae_kayen_pg
-DB_PG_USERNAME=sae_pg_user
+DB_PG_DATABASE=alfa
+DB_PG_USERNAME=alfa_user
 DB_PG_PASSWORD=tu_password_pg
 `
 
@@ -97,9 +96,9 @@ docker compose restart app
 
 `ash
 # Limpiar caches dentro del contenedor
-docker exec sae_dashboard php artisan cache:clear
-docker exec sae_dashboard php artisan config:clear
-docker exec sae_dashboard php artisan view:clear
+docker exec alfa_app php artisan cache:clear
+docker exec alfa_app php artisan config:clear
+docker exec alfa_app php artisan view:clear
 
 # Ver logs del sistema
 docker compose logs -f
@@ -124,7 +123,7 @@ dashboard/
     Http/Controllers/DashboardController.php
     Providers/AppServiceProvider.php
     Repositories/DashboardRepository.php
- config/database.php          (conexiones sae_kayen, sae_kayen_pg)
+ config/database.php          (conexiones sae_kayen, alfa_pg)
  resources/
     css/app.css              (AdminLTE 4 + iconos)
     js/app.js                (Bootstrap, AdminLTE, Alpine, ApexCharts)

@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
  * Representa un término que fue añadido manualmente por el usuario
  * para que sea reconocido como entidad en futuros análisis de texto.
  *
- * Utiliza la misma conexión PostgreSQL 'sae_kayen_pg' que EntityBlacklist.
+ * Utiliza la misma conexión PostgreSQL 'alfa_pg' que EntityBlacklist.
  *
  * Columnas:
  *   - term        : Texto a reconocer (ej: "Tribunal Superior de Córdoba")
@@ -22,7 +22,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class EntityWhitelist extends Model
 {
-    protected $connection = 'sae_kayen_pg';
+    protected $connection = 'alfa_pg';
     protected $table      = 'entity_whitelist';
 
     protected $fillable = [

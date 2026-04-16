@@ -12,7 +12,7 @@ class Expediente extends Model
 {
     use HasFactory;
 
-    /** Conexión a la base SAE Kayen (la misma usada por Repository). */
+    /** Conexión a la base sae_kayen (fallback SQLite). */
     protected $connection = 'sae_kayen';
 
     /** Tabla asociada. */

@@ -1,6 +1,6 @@
 ﻿@extends('layouts.dashboard')
 
-@section('title', 'Expedientes por Fuero  SAE Kayen')
+@section('title', 'Expedientes por Fuero  Alfa')
 @section('page-title', 'Expedientes por Fuero')
 @section('breadcrumb', 'Por Fuero')
 

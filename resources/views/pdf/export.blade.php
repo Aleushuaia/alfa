@@ -31,7 +31,7 @@
     <h1>Documento Anonimizado</h1>
     <p>{{ $text }}</p>
     <div class="footer">
-        Generado por SAE Kayen &mdash; {{ now()->format('d/m/Y H:i') }}
+        Generado por Alfa &mdash; {{ now()->format('d/m/Y H:i') }}
     </div>
 </body>
 </html>

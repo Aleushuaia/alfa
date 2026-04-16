@@ -15,7 +15,7 @@
                 <li class="breadcrumb-item">
                     <a href="{{ route('pdf-analyzer.form') }}"
                        class="text-decoration-none"
-                       style="color:#6366f1">Inicio</a>
+                       style="color:var(--accent)">Inicio</a>
                 </li>
                 <li class="breadcrumb-item active">@yield('breadcrumb', 'Dashboard')</li>
             </ol>
@@ -37,5 +37,19 @@
            onclick="toggleFullscreen(); return false;">
             <i class="fas fa-expand-alt"></i>
         </a>
+        <div class="topbar-theme-toggle">
+            <label class="topbar-theme-switch">
+                <input type="checkbox" id="darkModeSwitch">
+                <span class="topbar-theme-slider"></span>
+            </label>
+            <span class="topbar-theme-label">Dark</span>
+        </div>
+
+        @auth
+        <div class="d-flex align-items-center gap-2 ms-3" style="font-size:.82rem;color:var(--topbar-color)">
+            <i class="fas fa-user-circle" style="color:var(--accent);font-size:1.1rem"></i>
+            <span class="d-none d-md-inline fw-semibold">{{ auth()->user()->name }}</span>
+        </div>
+        @endauth
     </div>
 </header>

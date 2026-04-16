@@ -1,6 +1,6 @@
 @extends('layouts.dashboard')
 
-@section('title', 'Gestión de Blacklist — SAE Kayen')
+@section('title', 'Gestión de Blacklist — Alfa')
 @section('page-title', 'Gestión de Blacklist de Entidades')
 @section('breadcrumb', 'Blacklist')
 

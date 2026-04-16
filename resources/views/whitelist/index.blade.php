@@ -1,6 +1,6 @@
 @extends('layouts.dashboard')
 
-@section('title', 'Gestión de Whitelist — SAE Kayen')
+@section('title', 'Gestión de Whitelist — Alfa')
 @section('page-title', 'Gestión de Whitelist de Entidades (Agregadas)')
 @section('breadcrumb', 'Whitelist')
 

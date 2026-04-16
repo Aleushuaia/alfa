@@ -3,22 +3,17 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: sae-kayen-dashboard:latest
-    container_name: sae_dashboard
+    image: alfa-app:latest
+    container_name: alfa_app
     restart: unless-stopped
     ports:
       - "${APP_PORT:-8080}:8080"
     volumes:
-      # Bind-mount del código fuente: los cambios en el host se reflejan
-      # inmediatamente dentro del contenedor sin necesidad de rebuild.
       - ./:/var/www
-      # Volumen nombrado para preservar vendor/ instalado en la imagen
-      # (evita que el bind-mount lo sobrescriba con el vendor/ local vacío)
       - vendor:/var/www/vendor
-      # Storage persistente (logs, cache de framework, sesiones)
       - dashboard_storage:/var/www/storage
     environment:
-      APP_NAME: "${APP_NAME:-SAE Kayen Dashboard}"
+      APP_NAME: "${APP_NAME:-Alfa colaborador inteligente}"
       APP_ENV: "${APP_ENV:-production}"
       APP_KEY: "${APP_KEY}"
       APP_DEBUG: "${APP_DEBUG:-false}"
@@ -30,7 +25,7 @@ services:
       SESSION_DRIVER: "${SESSION_DRIVER:-file}"
 
       # ----------------------------------------------------------------
-      # Conexión SAE Kayen (MySQL/MariaDB principal)
+      # Conexión MySQL/MariaDB (opcional)
       # ----------------------------------------------------------------
       DB_SAE_CONNECTION: "${DB_SAE_CONNECTION:-mysql}"
       DB_SAE_HOST: "${DB_SAE_HOST:-}"
@@ -42,34 +37,33 @@ services:
       DB_SAE_COLLATION: "${DB_SAE_COLLATION:-utf8mb4_unicode_ci}"
 
       # ----------------------------------------------------------------
-      # Conexión PostgreSQL — contenedor sae_postgres
+      # Conexión PostgreSQL — contenedor alfa_postgres
+      # (Credenciales centralizadas desde .env)
       # ----------------------------------------------------------------
-      DB_PG_HOST: "${DB_PG_HOST:-sae_postgres}"
+      DB_PG_HOST: "${DB_PG_HOST:-alfa_postgres}"
       DB_PG_PORT: "${DB_PG_PORT:-5432}"
-      DB_PG_DATABASE: "${DB_PG_DATABASE:-sae_blacklist}"
-      DB_PG_USERNAME: "${DB_PG_USERNAME:-sae_user}"
-      DB_PG_PASSWORD: "${DB_PG_PASSWORD:-Sae2026!Secure}"
+      DB_PG_DATABASE: "${DB_PG_DATABASE}"
+      DB_PG_USERNAME: "${DB_PG_USERNAME}"
+      DB_PG_PASSWORD: "${DB_PG_PASSWORD}"
       DB_PG_SCHEMA: "${DB_PG_SCHEMA:-public}"
 
       # ----------------------------------------------------------------
       # Modo demo (sin BD real)
       # ----------------------------------------------------------------
-      DASHBOARD_DEMO: "${DASHBOARD_DEMO:-true}"
+      DASHBOARD_DEMO: "${DASHBOARD_DEMO:-false}"
 
       # ----------------------------------------------------------------
       # Microservicio Whisper (transcripción)
       # ----------------------------------------------------------------
-      WHISPER_SERVICE_URL: "${WHISPER_SERVICE_URL:-http://whisper:8002}"
+      WHISPER_SERVICE_URL: "${WHISPER_SERVICE_URL:-http://alfa_whisper:8002}"
 
       # ----------------------------------------------------------------
-      # Opcache — en desarrollo (APP_ENV != production) el entrypoint
-      # escribe un ini que habilita validate_timestamps y revalidate_freq=0
-      # para que los cambios en código se reflejen sin reiniciar php-fpm.
+      # Opcache
       # ----------------------------------------------------------------
       PHP_OPCACHE_DEV: "${PHP_OPCACHE_DEV:-true}"
 
     networks:
-      - sae_network
+      - alfa_network
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
@@ -81,31 +75,31 @@ services:
     build:
       context: ./nlp_service
       dockerfile: Dockerfile
-    image: sae-kayen-nlp:latest
-    container_name: sae_nlp
+    image: alfa-nlp:latest
+    container_name: alfa_nlp
     restart: unless-stopped
     ports:
       - "8001:8001"
     networks:
-      - sae_network
+      - alfa_network
 
   # ── PostgreSQL — Blacklist y persistencia de entidades ─────────────────
   postgres:
     image: postgres:16-alpine
-    container_name: sae_postgres
+    container_name: alfa_postgres
     restart: unless-stopped
     ports:
       - "${PG_EXTERNAL_PORT:-5433}:5432"
     environment:
-      POSTGRES_DB: "sae_blacklist"
-      POSTGRES_USER: "sae_user"
-      POSTGRES_PASSWORD: "Sae2026!Secure"
+      POSTGRES_DB: "${DB_PG_DATABASE:-alfa}"
+      POSTGRES_USER: "${DB_PG_USERNAME:-alfa_user}"
+      POSTGRES_PASSWORD: "${DB_PG_PASSWORD:-Alfa2026!Secure}"
     volumes:
-      - pg_data:/var/lib/postgresql/data
+      - ./docker/postgres-data:/var/lib/postgresql/data
     networks:
-      - sae_network
+      - alfa_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U sae_user -d sae_blacklist"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -114,27 +108,25 @@ services:
     build:
       context: ./whisper_service
       dockerfile: Dockerfile
-    image: sae-kayen-whisper:latest
-    container_name: sae_whisper
+    image: alfa-whisper:latest
+    container_name: alfa_whisper
     restart: unless-stopped
     ports:
       - "8002:8002"
     environment:
-      # tiny | base | small | medium | large-v3
       WHISPER_MODEL: "${WHISPER_MODEL:-small}"
       MAX_FILE_SIZE_MB: "${MAX_FILE_SIZE_MB:-200}"
     volumes:
       - whisper_models:/root/.cache/whisper
     networks:
-      - sae_network
+      - alfa_network
 
 volumes:
   dashboard_storage:
   vendor:
   node_modules:
   whisper_models:
-  pg_data:
 
 networks:
-  sae_network:
+  alfa_network:
     driver: bridge

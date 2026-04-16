@@ -16,8 +16,8 @@ return [
     |
     */
 
-    // Cambiado: usar la conexión PostgreSQL `sae_kayen_pg` como valor por defecto
-    'default' => env('DB_CONNECTION', 'sae_kayen_pg'),
+    // Conexión por defecto: PostgreSQL (contenedor alfa_postgres)
+    'default' => env('DB_CONNECTION', 'alfa_pg'),
 
     /*
     |--------------------------------------------------------------------------
@@ -109,16 +109,16 @@ return [
         'pgsql' => [
             'driver' => 'pgsql',
             'url' => env('DB_URL'),
-            'host' => env('DB_HOST', '127.0.0.1'),
-            'port' => env('DB_PORT', '5432'),
-            'database' => env('DB_DATABASE', 'laravel'),
-            'username' => env('DB_USERNAME', 'root'),
-            'password' => env('DB_PASSWORD', ''),
+            'host' => env('DB_PG_HOST', '127.0.0.1'),
+            'port' => env('DB_PG_PORT', '5432'),
+            'database' => env('DB_PG_DATABASE', 'alfa'),
+            'username' => env('DB_PG_USERNAME', 'alfa_user'),
+            'password' => env('DB_PG_PASSWORD', ''),
             'charset' => env('DB_CHARSET', 'utf8'),
             'prefix' => '',
             'prefix_indexes' => true,
-            'search_path' => 'public',
-            'sslmode' => env('DB_SSLMODE', 'prefer'),
+            'search_path' => env('DB_PG_SCHEMA', 'public'),
+            'sslmode' => env('DB_PG_SSLMODE', 'prefer'),
         ],
 
         'sqlsrv' => [
@@ -155,15 +155,16 @@ return [
         */
 
         // ─────────────────────────────────────────────────────────────────
-        // SAE Kayen — contenedor PostgreSQL (sae_postgres / blacklist)
+        // Alfa — contenedor PostgreSQL (alfa_postgres)
+        // Credenciales centralizadas en .env
         // ─────────────────────────────────────────────────────────────────
-        'sae_kayen_pg' => [
+        'alfa_pg' => [
             'driver'      => 'pgsql',
-            'host'        => env('DB_PG_HOST', 'sae_postgres'),
+            'host'        => env('DB_PG_HOST'),
             'port'        => env('DB_PG_PORT', '5432'),
-            'database'    => env('DB_PG_DATABASE', 'sae_blacklist'),
-            'username'    => env('DB_PG_USERNAME', 'sae_user'),
-            'password'    => env('DB_PG_PASSWORD', 'Sae2026!Secure'),
+            'database'    => env('DB_PG_DATABASE'),
+            'username'    => env('DB_PG_USERNAME'),
+            'password'    => env('DB_PG_PASSWORD'),
             'charset'     => 'utf8',
             'prefix'      => '',
             'prefix_indexes' => true,

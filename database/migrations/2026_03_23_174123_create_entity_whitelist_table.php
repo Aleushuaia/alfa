@@ -6,11 +6,11 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    protected $connection = 'sae_kayen_pg';
+    protected $connection = 'alfa_pg';
 
     public function up(): void
     {
-        Schema::connection('sae_kayen_pg')->create('entity_whitelist', function (Blueprint $table) {
+        Schema::connection('alfa_pg')->create('entity_whitelist', function (Blueprint $table) {
             $table->id();
             $table->string('term', 500);                   // Texto a reconocer como entidad
             $table->string('entity_type', 30)->nullable(); // PER, ORG, LOC, DATE, DNI, EMAIL, PHONE, MISC — null = genérico
@@ -26,6 +26,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::connection('sae_kayen_pg')->dropIfExists('entity_whitelist');
+        Schema::connection('alfa_pg')->dropIfExists('entity_whitelist');
     }
 };

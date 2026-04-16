@@ -11,18 +11,26 @@
     display: grid;
     grid-template-columns: 1fr 3fr;
     gap: 1.5rem;
-    align-items: start;
+    align-items: stretch;
+}
+.ocr-wrap > .t-card {
+    min-height: 80vh;
+    display: flex;
+    flex-direction: column;
 }
 @media (max-width: 900px) {
     .ocr-wrap { grid-template-columns: 1fr; }
+    .ocr-wrap > .t-card { min-height: auto; }
 }
 
 /* ── Tarjeta base ─────────────────────────────────────────────────────────── */
 .t-card {
-    background: #fff;
+    background: var(--card-bg);
     border-radius: var(--card-radius, 14px);
     box-shadow: var(--card-shadow, 0 2px 20px rgba(0,0,0,.07));
+    border: 1px solid var(--card-border);
     padding: 1.75rem;
+    color: var(--body-color);
 }
 .t-card-header {
     display: flex;
@@ -33,40 +41,40 @@
 .t-card-icon {
     width: 40px; height: 40px;
     border-radius: 10px;
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
     display: flex; align-items: center; justify-content: center;
     color: #fff;
     font-size: 1.1rem;
     flex-shrink: 0;
-    box-shadow: 0 4px 14px rgba(99,102,241,.35);
+    box-shadow: 0 4px 14px var(--accent-glow, rgba(59,130,246,.35));
 }
 .t-card-header h5 {
     margin: 0;
     font-size: 1rem;
     font-weight: 700;
-    color: #0f172a;
+    color: var(--heading-color);
 }
 .t-card-header p {
     margin: 0;
     font-size: .78rem;
-    color: #64748b;
+    color: var(--muted-color);
 }
 
 /* ── Drop zone ────────────────────────────────────────────────────────────── */
 .drop-zone {
-    border: 2px dashed #cbd5e1;
+    border: 2px dashed var(--input-border);
     border-radius: 12px;
     padding: 2.5rem 1.5rem;
     text-align: center;
     cursor: pointer;
     transition: border-color .25s, background .25s;
-    background: #f8fafc;
+    background: var(--input-bg);
     position: relative;
 }
 .drop-zone:hover,
 .drop-zone.drag-over {
-    border-color: #6366f1;
-    background: #eef2ff;
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 6%, var(--input-bg));
 }
 .drop-zone input[type="file"] {
     position: absolute;
@@ -78,19 +86,19 @@
 }
 .drop-zone .dz-icon {
     font-size: 2.5rem;
-    color: #6366f1;
+    color: var(--accent);
     margin-bottom: .75rem;
     display: block;
 }
 .drop-zone .dz-title {
     font-size: .95rem;
     font-weight: 600;
-    color: #1e293b;
+    color: var(--heading-color);
     margin-bottom: .3rem;
 }
 .drop-zone .dz-sub {
     font-size: .8rem;
-    color: #94a3b8;
+    color: var(--muted-color);
 }
 
 /* ── Badge de formato ─────────────────────────────────────────────────────── */
@@ -102,9 +110,9 @@
     justify-content: center;
 }
 .format-badge {
-    background: #f1f5f9;
-    color: #475569;
-    border: 1px solid #e2e8f0;
+    background: var(--badge-light-bg);
+    color: var(--badge-light-color);
+    border: 1px solid var(--badge-light-border);
     border-radius: 6px;
     font-size: .7rem;
     font-weight: 600;
@@ -117,8 +125,8 @@
     display: none;
     align-items: center;
     gap: .85rem;
-    background: #f0f9ff;
-    border: 1px solid #bae6fd;
+    background: var(--badge-light-bg);
+    border: 1px solid var(--badge-light-border);
     border-radius: 10px;
     padding: .85rem 1rem;
     margin-top: 1rem;
@@ -126,19 +134,19 @@
 .file-preview.show { display: flex; }
 .file-preview .fp-icon {
     font-size: 1.6rem;
-    color: #0284c7;
+    color: var(--accent);
     flex-shrink: 0;
 }
 .file-preview .fp-info { flex: 1; min-width: 0; }
 .file-preview .fp-name {
     font-size: .875rem;
     font-weight: 600;
-    color: #0f172a;
+    color: var(--heading-color);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
-.file-preview .fp-size { font-size: .75rem; color: #64748b; }
+.file-preview .fp-size { font-size: .75rem; color: var(--muted-color); }
 .file-preview .fp-remove {
     background: none; border: none;
     color: #94a3b8; font-size: 1.1rem;
@@ -155,7 +163,7 @@
     padding: .75rem 1rem;
     font-size: .9rem;
     font-weight: 600;
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
     border: none;
     border-radius: 10px;
     color: #fff;
@@ -165,7 +173,7 @@
     justify-content: center;
     gap: .5rem;
     transition: opacity .2s, transform .15s;
-    box-shadow: 0 4px 14px rgba(99,102,241,.35);
+    box-shadow: 0 4px 14px var(--accent-glow, rgba(59,130,246,.35));
 }
 .btn-extraer:hover:not(:disabled) { opacity: .9; transform: translateY(-1px); }
 .btn-extraer:disabled { opacity: .55; cursor: not-allowed; }
@@ -178,7 +186,7 @@
 .t-progress-wrap.show { display: block; }
 .t-progress-label {
     font-size: .78rem;
-    color: #64748b;
+    color: var(--muted-color);
     margin-bottom: .35rem;
     display: flex;
     justify-content: space-between;
@@ -186,13 +194,13 @@
 .t-progress-bar {
     height: 6px;
     border-radius: 99px;
-    background: #e2e8f0;
+    background: var(--badge-light-bg);
     overflow: hidden;
 }
 .t-progress-bar-fill {
     height: 100%;
     width: 0%;
-    background: linear-gradient(90deg, #6366f1, #8b5cf6);
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
     border-radius: 99px;
     transition: width .4s ease;
     animation: pulsebar 1.5s ease-in-out infinite;
@@ -206,13 +214,13 @@
 .t-empty-state {
     text-align: center;
     padding: 3rem 1rem;
-    color: #94a3b8;
+    color: var(--muted-color);
 }
 .t-empty-state i {
     font-size: 3rem;
     display: block;
     margin-bottom: 1rem;
-    color: #cbd5e1;
+    color: var(--muted-color);
 }
 .t-empty-state p {
     font-size: .88rem;
@@ -222,22 +230,22 @@
 
 .t-textarea {
     width: 100%;
-    min-height: 520px;
-    height: 90%;
-    border: 1.5px solid #e2e8f0;
+    min-height: 200px;
+    flex: 1;
+    border: 1.5px solid var(--input-border);
     border-radius: 10px;
     padding: 1rem;
     font-size: .85rem;
     font-family: 'Inter', sans-serif;
-    color: #1e293b;
+    color: var(--input-color);
     line-height: 1.7;
     resize: vertical;
-    background: #f8fafc;
+    background: var(--input-bg);
     transition: border-color .2s;
     outline: none;
     box-sizing: border-box;
 }
-.t-textarea:focus { border-color: #6366f1; background: #fff; }
+.t-textarea:focus { border-color: var(--accent); background: var(--input-bg); }
 
 /* ── Metadatos de resultado ───────────────────────────────────────────────── */
 .t-result-meta {
@@ -246,14 +254,14 @@
     flex-wrap: wrap;
     margin-bottom: 1rem;
     padding: .6rem .85rem;
-    background: #f0fdf4;
-    border: 1px solid #bbf7d0;
+    background: var(--alert-success-bg);
+    border: 1px solid var(--alert-success-color);
     border-radius: 8px;
     font-size: .78rem;
-    color: #166534;
+    color: var(--alert-success-color);
 }
 .t-result-meta span { display: flex; align-items: center; gap: .35rem; }
-.t-result-meta i { color: #16a34a; }
+.t-result-meta i { color: var(--alert-success-color); }
 
 /* ── Botones acción resultado ─────────────────────────────────────────────── */
 .t-result-actions {
@@ -275,9 +283,9 @@
     transition: opacity .2s, transform .15s;
 }
 .t-btn:hover { opacity: .85; transform: translateY(-1px); }
-.t-btn-copy     { background: #eef2ff; color: #4f46e5; }
-.t-btn-download { background: #f0fdf4; color: #16a34a; }
-.t-btn-clear    { background: #fff1f2; color: #e11d48; }
+.t-btn-copy     { background: var(--badge-light-bg); color: var(--accent); }
+.t-btn-download { background: var(--alert-success-bg); color: var(--alert-success-color); }
+.t-btn-clear    { background: var(--alert-danger-bg); color: var(--alert-danger-color); }
 
 /* ── Toast ────────────────────────────────────────────────────────────────── */
 .t-toast-container {
@@ -293,14 +301,14 @@
     display: flex;
     align-items: center;
     gap: .6rem;
-    background: #fff;
+    background: var(--card-bg);
     padding: .75rem 1rem;
     border-radius: 10px;
-    box-shadow: 0 4px 20px rgba(0,0,0,.12);
+    box-shadow: var(--card-shadow);
     font-size: .82rem;
     font-weight: 500;
-    color: #1e293b;
-    border-left: 4px solid #6366f1;
+    color: var(--body-color);
+    border-left: 4px solid var(--accent);
     animation: slideInRight .3s ease;
     min-width: 260px;
     max-width: 360px;
@@ -377,9 +385,9 @@
             </button>
         </form>
 
-        <div class="mt-3 pt-3" style="border-top:1px solid #f1f5f9;">
-            <p class="mb-0" style="font-size:.75rem;color:#94a3b8;">
-                <i class="fas fa-info-circle me-1" style="color:#6366f1;"></i>
+        <div class="mt-3 pt-3" style="border-top:1px solid var(--card-border);">
+            <p class="mb-0" style="font-size:.75rem;color:var(--muted-color);">
+                <i class="fas fa-info-circle me-1" style="color:var(--accent);"></i>
                 Tesseract procesa cada página del PDF como imagen. El tiempo
                 depende de la cantidad de páginas y la calidad del escaneo.
                 Tamaño máximo: <strong>50 MB</strong>.
