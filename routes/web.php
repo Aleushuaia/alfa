@@ -7,7 +7,9 @@ use App\Http\Controllers\OcrExtractorController;
 use App\Http\Controllers\PdfAnalyzerController;
 use App\Http\Controllers\TranscripcionController;
 use App\Http\Controllers\ThemeConfigController;
+use App\Http\Controllers\UnidadController;
 use App\Http\Controllers\UserManagementController;
+use App\Http\Controllers\WordAnonymizerController;
 use Illuminate\Support\Facades\Route;
 
 // ── Autenticación ─────────────────────────────────────────────────────────────
@@ -69,6 +71,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/ocr-extractor', [OcrExtractorController::class, 'index'])->name('pdf-extractor.index');
     Route::post('/ocr-extractor/extract', [OcrExtractorController::class, 'extract'])->name('pdf-extractor.extract');
 
+    // ── Anonimizador de Word ──────────────────────────────────────────────
+    Route::get('/word-anonymizer', [WordAnonymizerController::class, 'index'])->name('word-anonymizer.index');
+    Route::post('/word-anonymizer/process', [WordAnonymizerController::class, 'process'])->name('word-anonymizer.process');    Route::post('/word-anonymizer/analyze', [WordAnonymizerController::class, 'analyzeText'])->name('word-anonymizer.analyze');
+    Route::post('/word-anonymizer/anonymize', [WordAnonymizerController::class, 'anonymize'])->name('word-anonymizer.anonymize');
+    Route::get('/word-anonymizer/download', [WordAnonymizerController::class, 'download'])->name('word-anonymizer.download');
     // ── Gestión de entidades (colores por usuario) ──────────────────────
     Route::get('/entity-config', [EntityConfigController::class, 'index'])->name('entity-config.index');
     Route::post('/entity-config', [EntityConfigController::class, 'save'])->name('entity-config.save');
@@ -85,5 +92,11 @@ Route::middleware('auth')->group(function () {
         Route::post('/users', [UserManagementController::class, 'store'])->name('users.store');
         Route::put('/users/{user}', [UserManagementController::class, 'update'])->name('users.update');
         Route::delete('/users/{user}', [UserManagementController::class, 'destroy'])->name('users.destroy');
+
+        // ── Unidades de Trabajo ──────────────────────────────────────────
+        Route::resource('unidades', UnidadController::class)
+            ->parameters(['unidades' => 'unidad']);
+        Route::post('/unidades/{unidad}/users',          [UnidadController::class, 'attachUser'])->name('unidades.attach-user');
+        Route::delete('/unidades/{unidad}/users/{user}', [UnidadController::class, 'detachUser'])->name('unidades.detach-user');
     });
 });

@@ -89,4 +89,15 @@ chown -R www-data:www-data /var/www/storage/app/private/temp-ocr 2>/dev/null || 
 chmod -R 775 /var/www/storage/app/private/temp-ocr 2>/dev/null || true
 
 echo "[entrypoint] Iniciando servicios..."
+# ─── Limpieza final de cachés (siempre al final, antes de ejecutar el CMD) ──
+echo "[entrypoint] Ejecutando limpieza final de cachés..."
+cd /var/www || true
+# Ejecutar limpiezas de forma tolerante (no fallar el entrypoint si algún comando falla)
+php artisan cache:clear --no-interaction 2>/dev/null || true
+php artisan config:clear --no-interaction 2>/dev/null || true
+php artisan route:clear --no-interaction 2>/dev/null || true
+php artisan view:clear --no-interaction 2>/dev/null || true
+php artisan optimize:clear --no-interaction 2>/dev/null || true
+
+# Finalmente arrancar el proceso principal
 exec "$@"

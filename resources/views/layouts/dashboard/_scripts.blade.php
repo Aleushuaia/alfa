@@ -37,6 +37,72 @@
     );
     overlay?.addEventListener('click', closeSidebar);
 
+    /* ── Sidebar collapse (desktop) ─────────────────────────────── */
+    (function () {
+        const COLLAPSED_W = '80px';
+        const EXPANDED_W  = '270px';
+        const LS_KEY      = 'sidebar-collapsed';
+
+        function applyCollapse(collapsed) {
+            const sb  = document.getElementById('sidebar');
+            const pw  = document.getElementById('page-wrapper');
+            const tb  = document.getElementById('topbar');
+            const btn = document.getElementById('btn-collapse');
+            if (!sb) return;
+
+            if (collapsed) {
+                // Add collapsed class to trigger CSS rules
+                sb.classList.add('collapsed');
+                // Update CSS variable for width
+                document.documentElement.style.setProperty('--sidebar-w', COLLAPSED_W);
+                // Also force margin-left on page-wrapper and left on topbar for reliability
+                if (pw) pw.style.marginLeft = COLLAPSED_W;
+                if (tb) tb.style.left = COLLAPSED_W;
+            } else {
+                // Remove collapsed class
+                sb.classList.remove('collapsed');
+                // Update CSS variable for width
+                document.documentElement.style.setProperty('--sidebar-w', EXPANDED_W);
+                // Reset inline styles to use CSS variables
+                if (pw) pw.style.marginLeft = '';
+                if (tb) tb.style.left = '';
+            }
+
+            // Update button UI
+            if (btn) {
+                const icon  = document.getElementById('collapse-icon');
+                const label = btn.querySelector('.collapse-label');
+                if (label) label.textContent = collapsed ? 'Expandir' : 'Colapsar';
+                btn.dataset.sidebarTooltip = collapsed ? 'Expandir panel' : 'Colapsar panel';
+            }
+        }
+
+        // Restore state immediately to avoid layout flash
+        const savedState = localStorage.getItem(LS_KEY) === 'true';
+        applyCollapse(savedState);
+
+        document.addEventListener('DOMContentLoaded', function () {
+            // Re-apply after DOM is ready to ensure all elements are initialized
+            const savedState = localStorage.getItem(LS_KEY) === 'true';
+            applyCollapse(savedState);
+
+            const btn = document.getElementById('btn-collapse');
+            if (btn) {
+                btn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // Toggle: if currently collapsed, expand; if expanded, collapse
+                    const currentlyCollapsed = document.getElementById('sidebar').classList.contains('collapsed');
+                    const nextState = !currentlyCollapsed;
+                    // Store new state
+                    localStorage.setItem(LS_KEY, nextState);
+                    // Apply changes
+                    applyCollapse(nextState);
+                });
+            }
+        });
+    })();
+
     /* ── Fullscreen ─────────────────────────────────────────────── */
     function toggleFullscreen() {
         if (!document.fullscreenElement) document.documentElement.requestFullscreen();

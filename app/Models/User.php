@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
@@ -45,5 +46,16 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Unidades de trabajo asignadas a este usuario (excluye pivot soft-deleted).
+     */
+    public function unidades(): BelongsToMany
+    {
+        return $this->belongsToMany(Unidad::class, 'user_unidad')
+            ->using(UserUnidad::class)
+            ->withTimestamps()
+            ->wherePivotNull('deleted_at');
     }
 }

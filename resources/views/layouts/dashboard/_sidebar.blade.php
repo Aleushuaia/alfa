@@ -17,65 +17,114 @@
     <nav class="sidebar-nav py-2">
         {{-- ── Procesamiento de Texto ── visible para todos los autenticados --}}
         <p class="nav-section-label">Procesamiento de Texto</p>
-        <a href="{{ route('pdf-extractor.index') }}" class="nav-link {{ request()->routeIs('pdf-extractor*') ? 'active' : '' }}">
+        <a href="{{ route('pdf-extractor.index') }}"
+           class="nav-link {{ request()->routeIs('pdf-extractor*') ? 'active' : '' }}"
+           title=""
+           data-sidebar-tooltip="PDF de imagen a texto">
             <span class="nav-icon"><i class="fas fa-file-alt"></i></span>
-            Pdf de imagen a texto
+            <span>Pdf de imagen a texto</span>
         </a>
-        <a href="{{ route('pdf-analyzer.form') }}" class="nav-link {{ request()->routeIs('pdf-analyzer.*') ? 'active' : '' }}">
+        <a href="{{ route('word-anonymizer.index') }}"
+           class="nav-link {{ request()->routeIs('word-anonymizer*') ? 'active' : '' }}"
+           title=""
+           data-sidebar-tooltip="Anonimizador de Word">
+            <span class="nav-icon"><i class="fas fa-file-word"></i></span>
+            <span>Anonimizador de Word</span>
+        </a>
+        <a href="{{ route('pdf-analyzer.form') }}"
+           class="nav-link {{ request()->routeIs('pdf-analyzer.*') ? 'active' : '' }}"
+           title=""
+           data-sidebar-tooltip="Anonimizador PDF">
             <span class="nav-icon"><i class="fas fa-file-alt"></i></span>
-            Anonimizador
+            <span>Anonimizador</span>
         </a>
 
         {{-- ── Smart Tools ── visible para todos los autenticados --}}
         <p class="nav-section-label mt-2">Smart Tools</p>
-        <a href="{{ route('transcripcion.index') }}" class="nav-link {{ request()->routeIs('transcripcion.*') ? 'active' : '' }}">
+        <a href="{{ route('transcripcion.index') }}"
+           class="nav-link {{ request()->routeIs('transcripcion.*') ? 'active' : '' }}"
+           title=""
+           data-sidebar-tooltip="Transcripciones">
             <span class="nav-icon"><i class="fas fa-microphone"></i></span>
-            Transcripciones
+            <span>Transcripciones</span>
         </a>
 
         {{-- ── Configuración ── visible para todos los autenticados --}}
         <p class="nav-section-label mt-2">Configuración</p>
-        <a href="{{ route('blacklist.index') }}" class="nav-link {{ request()->routeIs('blacklist.*') ? 'active' : '' }}">
+        <a href="{{ route('blacklist.index') }}"
+           class="nav-link {{ request()->routeIs('blacklist.*') ? 'active' : '' }}"
+           title=""
+           data-sidebar-tooltip="Blacklist (omitidas)">
             <span class="nav-icon"><i class="fas fa-ban"></i></span>
-            Gestión de la Blacklist (omitidas)
+            <span>Gestión de la Blacklist (omitidas)</span>
         </a>
-        <a href="{{ route('whitelist.index') }}" class="nav-link {{ request()->routeIs('whitelist.*') ? 'active' : '' }}">
+        <a href="{{ route('whitelist.index') }}"
+           class="nav-link {{ request()->routeIs('whitelist.*') ? 'active' : '' }}"
+           title=""
+           data-sidebar-tooltip="Whitelist (agregadas)">
             <span class="nav-icon"><i class="fas fa-check-circle"></i></span>
-            Gestión de la Whitelist (agregadas)
+            <span>Gestión de la Whitelist (agregadas)</span>
         </a>
-        <a href="{{ route('entity-config.index') }}" class="nav-link {{ request()->routeIs('entity-config.*') ? 'active' : '' }}">
+        <a href="{{ route('entity-config.index') }}"
+           class="nav-link {{ request()->routeIs('entity-config.*') ? 'active' : '' }}"
+           title=""
+           data-sidebar-tooltip="Gestión de entidades">
             <span class="nav-icon"><i class="fas fa-palette"></i></span>
-            Gestión de entidades
+            <span>Gestión de entidades</span>
         </a>
-        <a href="{{ route('theme-config.index') }}" class="nav-link {{ request()->routeIs('theme-config.*') ? 'active' : '' }}">
+        <a href="{{ route('theme-config.index') }}"
+           class="nav-link {{ request()->routeIs('theme-config.*') ? 'active' : '' }}"
+           title=""
+           data-sidebar-tooltip="Colores del tema">
             <span class="nav-icon"><i class="fas fa-swatchbook"></i></span>
-            Colores del tema
+            <span>Colores del tema</span>
         </a>
 
         {{-- ── Ajustes ── visible solo para administradores --}}
         @if(auth()->check() && auth()->user()->hasRole('administrador'))
         <p class="nav-section-label mt-2">Ajustes</p>
-        <a href="{{ route('admin.users.index') }}" class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
+        <a href="{{ route('admin.users.index') }}"
+           class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}"
+           title=""
+           data-sidebar-tooltip="Gestión de usuarios y roles">
             <span class="nav-icon"><i class="fas fa-users-cog"></i></span>
-            Gestión de usuarios y roles
+            <span>Gestión de usuarios y roles</span>
+        </a>
+        <a href="{{ route('admin.unidades.index') }}"
+           class="nav-link {{ request()->routeIs('admin.unidades.*') ? 'active' : '' }}"
+           title=""
+           data-sidebar-tooltip="Unidades de Trabajo">
+            <span class="nav-icon"><i class="fas fa-sitemap"></i></span>
+            <span>Unidades de Trabajo</span>
         </a>
         @endif
+
+        {{-- ── Panel ── --}}
+        <p class="nav-section-label mt-2">Panel</p>
+        <button type="button"
+                id="btn-collapse"
+                class="sidebar-collapse-btn"
+                data-sidebar-tooltip="Colapsar panel"
+                title="">
+            <span class="nav-icon"><i class="fas fa-angles-left" id="collapse-icon"></i></span>
+            <span class="collapse-label">Colapsar</span>
+        </button>
     </nav>
 
     <div class="sidebar-footer">
         @if(auth()->check())
-            <div class="d-flex align-items-center gap-2 mb-2" style="font-size:.78rem;color:rgba(255,255,255,.6)">
-                <i class="fas fa-user-circle"></i>
-                <span>{{ auth()->user()->name }}</span>
-            </div>
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
-                <button type="submit" class="btn btn-sm w-100" style="background:rgba(255,255,255,.06);color:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.08);border-radius:8px;font-size:.75rem;padding:.35rem .5rem;">
-                    <i class="fas fa-sign-out-alt me-1"></i>Cerrar sesión
+                <button type="submit"
+                        class="sidebar-logout-link"
+                        data-sidebar-tooltip="Cerrar sesión"
+                        title="">
+                    <i class="fas fa-power-off"></i>
+                    <span class="collapse-label">Cerrar sesión</span>
                 </button>
             </form>
         @endif
-        <div class="mt-2" style="font-size:.7rem; color:rgba(255,255,255,.25);">
+        <div class="sidebar-copy collapse-label">
             Alfa &copy; {{ date('Y') }}
         </div>
     </div>

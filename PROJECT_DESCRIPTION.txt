@@ -1,0 +1,104 @@
+Nombre del proyecto: Alfa (repositorio local: c:\laravel\alfa)
+
+Resumen profesional
+-------------------
+Alfa es una aplicación web basada en Laravel orientada al procesamiento, análisis y clasificación de documentos y texto. Incorpora pipelines de OCR y análisis NLP, servicios de transcripción/voz, y herramientas para gestión de listas blancas y negras de entidades. Está diseñada para integrarse con microservicios de procesamiento (ej. `nlp_service`, `whisper_service`) que realizan análisis avanzados y transcripción.
+
+Funcionalidad principal
+-----------------------
+- Subida y almacenamiento de documentos (PDF, imágenes) para extracción y análisis de texto.
+- Procesamiento OCR y extracción de entidades (nombres, identificadores, etc.).
+- Análisis NLP para clasificación, etiquetado y detección basada en listas blancas/negras.
+- Transcripción de audio (servicio `whisper_service`) y análisis posterior.
+- Gestión de usuarios y roles (acceso administrativo y control de permisos).
+- APIs y procesos en background para análisis asíncrono, con colas y supervisión.
+
+Arquitectura y diseño
+---------------------
+- Backend: Laravel (PHP) MVC con organización en `app/Http/Controllers`, `app/Repositories` y `app/Services` para separar controladores, lógica de acceso a datos y lógica de negocio.
+- Modelos principales en `app/Models` (ejemplos identificados):
+  - `User` — gestión de usuarios, autenticación y asignación de roles.
+  - `Expediente` — entidad de negocio que representa un caso o documento analizado.
+  - `EntityWhitelist` / `EntityBlacklist` — tablas para controlar entidades permitidas o bloqueadas.
+  - `UserEntityColor`, `UserThemeColor` — preferencias/colores por usuario para la UI.
+- Microservicios Python: directorios `nlp_service/` y `whisper_service/` con Dockerfiles y `main.py` — realizan análisis NLP y transcripción respectivamente.
+- Jobs/Colas: configuración de colas y procesos en background, supervisados por `supervisord.conf` y ejecutables dentro del contenedor de la aplicación.
+- Contenerización: Docker + `docker-compose.yml` para orquestar servicios (app PHP, base de datos, microservicios). Hay datos de Postgres en `docker/postgres-data/` indicando uso de PostgreSQL.
+- Servidor web: configuración de Nginx disponible en `nginx.conf` e integración con el contenedor web (reverse proxy / servido de assets).
+
+Stack tecnológico
+-----------------
+- Lenguaje principal: PHP 8.x (Laravel framework).
+- Framework: Laravel (estructura MVC, Eloquent ORM, jobs, queuing, middleware).
+- Base de datos: PostgreSQL (evidencia: `docker/postgres-data/`, `docker/create-db.php`).
+- Contenerización y orquestación: Docker + Docker Compose.
+- Microservicios: Python para NLP y transcripción (`nlp_service`, `whisper_service`) con dependencias listadas en `requirements.txt`.
+- Autenticación y permisos: Laravel Auth + paquete `spatie/laravel-permission` (config: `config/permission.php` y presencia en `vendor/`).
+- Cola y procesos: Supervisor (`supervisord.conf`) y colas de Laravel.
+- Frontend: Vite (`vite.config.js`) y recursos en `resources/css`, `resources/js`, vistas Blade en `resources/views/`.
+- Generación de PDFs / manipulación: paquetes como `dompdf` y otros en `composer.json`.
+- Pruebas: PHPUnit (`phpunit.xml`, `tests/`) para tests unitarios y funcionales.
+
+Entidades y relaciones (resumen)
+--------------------------------
+- User
+  - Atributos: `name`, `email`, `password`, preferencias de tema/colores.
+  - Relaciones: roles/permissions (Spatie), posiblemente `hasMany` a `Expediente`.
+- Expediente
+  - Representa un documento o caso analizado. Relacionado con resultados de OCR/NLP.
+- EntityWhitelist / EntityBlacklist
+  - Tablas para listas que influyen en la lógica del análisis (permitir/bloquear entidades detectadas).
+- UserEntityColor / UserThemeColor
+  - Preferencias visuales por usuario para marcar entidades o temas en la UI.
+
+Estructura de carpetas clave
+---------------------------
+- `app/` — lógica de aplicación: `Models`, `Http/Controllers`, `Repositories`, `Services`, `Providers`.
+- `resources/views/` — vistas Blade (UI server-rendered).
+- `resources/js`, `resources/css` — assets front-end gestionados por Vite.
+- `database/migrations`, `database/seeders` — migraciones y seeders para estructura inicial y datos.
+- `nlp_service/`, `whisper_service/` — microservicios externos para análisis y transcripción.
+- `docker/`, `docker-compose.yml`, `Dockerfile` — contenerización y scripts para despliegue.
+
+Despliegue y ejecución (resumen rápido)
+--------------------------------------
+Comandos típicos para desarrollo local (Docker):
+```
+docker compose build
+docker compose up -d
+# acceder al contenedor app para comandos artisan si es necesario
+docker compose exec app php artisan migrate
+docker compose exec app php artisan db:seed --class=AdminUserSeeder
+```
+(Ver `docker-compose.yml` y `Dockerfile` para detalles de servicios y nombres)
+
+Operaciones administrativas
+--------------------------
+- Crear o restablecer admin: usar `php artisan tinker` o un `Seeder` en `database/seeders/`.
+- Logs: `storage/logs/` para revisar errores y registros.
+
+Tests y calidad
+---------------
+- Tests unitarios y funcionales en `tests/` ejecutables con `vendor/bin/phpunit` o `php artisan test`.
+- Configuración de `phpunit.xml` presente en la raíz.
+
+Puntos a revisar/consideraciones
+--------------------------------
+- Confirmar conexiones y credenciales en `config/database.php` y `.env` (no incluido en repo público).
+- Revisar `docker-compose.yml` para nombres exactos de servicios (ej. `app`, `db`, `nlp_service`).
+- Asegurar que los microservicios `nlp_service` y `whisper_service` estén desplegados y accesibles por la app (red Docker o endpoints HTTP/RPC).
+
+Dónde mirar en el código
+------------------------
+- Controladores y rutas: `app/Http/Controllers/` y `routes/web.php` / `routes/console.php`.
+- Modelos principales: `app/Models/`.
+- Configuración de permisos: `config/permission.php`.
+- Docker y despliegue: `docker-compose.yml`, `Dockerfile`, `docker/`.
+- Microservicios: `nlp_service/`, `whisper_service/`.
+
+Contacto y mantenimiento
+------------------------
+- Mantener actualizadas las dependencias de PHP (`composer.lock`) y Python (`requirements.txt`) para los servicios.
+- Añadir documentación adicional en `README.md` sobre cómo desplegar los microservicios y gestión de colas.
+
+Fin del documento.
