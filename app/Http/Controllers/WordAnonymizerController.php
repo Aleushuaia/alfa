@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\EntityBlacklist;
 use App\Models\EntityWhitelist;
 use App\Services\NlpEntityService;
+use App\Services\OcrExtractorService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -19,7 +20,10 @@ use PhpOffice\PhpWord\Element\ListItem;
 
 class WordAnonymizerController extends Controller
 {
-    public function __construct(private NlpEntityService $nlp) {}
+    public function __construct(
+        private NlpEntityService $nlp,
+        private OcrExtractorService $ocr,
+    ) {}
 
     // ─────────────────────────────────────────────────────────────────────────
     // index
@@ -60,8 +64,9 @@ class WordAnonymizerController extends Controller
 
         // Keep file in session — needed later for anonymization
         session([
-            'wa_doc_path' => $tmpPath,
-            'wa_doc_name' => $file->getClientOriginalName(),
+            'wa_doc_path'    => $tmpPath,
+            'wa_doc_name'    => $file->getClientOriginalName(),
+            'wa_source_type' => 'word',   // used to gate Word download
         ]);
 
         try {
@@ -85,11 +90,154 @@ class WordAnonymizerController extends Controller
             ]);
         } catch (\Exception $e) {
             Storage::disk('local')->delete($tmpPath);
-            session()->forget(['wa_doc_path', 'wa_doc_name']);
+            session()->forget(['wa_doc_path', 'wa_doc_name', 'wa_source_type']);
             Log::error('WordAnonymizer: error en extracción', ['message' => $e->getMessage()]);
 
             return response()->json(['error' => $e->getMessage()], 422);
         }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // processPdf  —  Upload PDF, extract text (OCR first, native fallback)
+    // ─────────────────────────────────────────────────────────────────────────
+    public function processPdf(Request $request)
+    {
+        $request->validate([
+            'pdf' => [
+                'required',
+                'file',
+                'mimes:pdf',
+                'max:51200',
+            ],
+        ], [
+            'pdf.required' => 'Debe seleccionar un archivo PDF.',
+            'pdf.mimes'    => 'Solo se aceptan archivos PDF.',
+            'pdf.max'      => 'El archivo no debe superar los 50 MB.',
+        ]);
+
+        $file = $request->file('pdf');
+
+        // Clean up files from a previous session
+        $this->cleanupSessionFiles();
+
+        Storage::disk('local')->makeDirectory('temp-word');
+        $tmpPath = $file->store('temp-word', 'local');
+        $absPath = Storage::disk('local')->path($tmpPath);
+
+        // Mark source as PDF (no Word download available)
+        session([
+            'wa_doc_path'    => null,
+            'wa_doc_name'    => $file->getClientOriginalName(),
+            'wa_source_type' => 'pdf',
+        ]);
+
+        try {
+            Log::info('WordAnonymizer PDF: extrayendo texto', [
+                'filename' => $file->getClientOriginalName(),
+                'size_mb'  => round($file->getSize() / 1048576, 2),
+            ]);
+
+            // Strategy 1: OCR via Tesseract (best for scanned / image PDFs)
+            $text       = '';
+            $method     = 'ocr';
+            $ocrError   = null;
+
+            try {
+                $text = $this->ocr->extractFromPdf($absPath);
+            } catch (\Exception $ocrEx) {
+                $ocrError = $ocrEx->getMessage();
+                Log::warning('WordAnonymizer PDF: OCR falló, intentando extracción nativa', [
+                    'error' => $ocrError,
+                ]);
+            }
+
+            // Strategy 2: Native text extraction via pdftotext (digital PDFs)
+            if ($text === '') {
+                $method = 'native';
+                $text   = $this->extractPdfNative($absPath);
+            }
+
+            // Strategy 3: Last resort — try to parse any readable ASCII from the binary
+            if (trim($text) === '') {
+                throw new \RuntimeException(
+                    'No se pudo extraer texto del PDF. ' .
+                    'Verifique que el documento no esté protegido ni dañado.' .
+                    ($ocrError ? " (OCR: {$ocrError})" : '')
+                );
+            }
+
+            $chars = strlen($text);
+            $words = str_word_count($text);
+            $lines = substr_count($text, "\n") + 1;
+
+            Log::info('WordAnonymizer PDF: extracción OK', [
+                'method' => $method,
+                'chars'  => $chars,
+            ]);
+
+            return response()->json([
+                'text'    => $text,
+                'chars'   => $chars,
+                'words'   => $words,
+                'lines'   => $lines,
+                'method'  => $method,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('WordAnonymizer PDF: error', ['message' => $e->getMessage()]);
+
+            return response()->json(['error' => $e->getMessage()], 422);
+
+        } finally {
+            // PDF is never stored in session for download — always delete temp file
+            if (Storage::disk('local')->exists($tmpPath)) {
+                Storage::disk('local')->delete($tmpPath);
+            }
+        }
+    }
+
+    /**
+     * Native text extraction from digital PDFs using pdftotext binary.
+     * Fallback when OCR fails or the PDF is digital (not scanned).
+     */
+    private function extractPdfNative(string $absPath): string
+    {
+        $outFile = sys_get_temp_dir() . '/wa_pdf_' . uniqid() . '.txt';
+
+        try {
+            // pdftotext preserves layout; -enc UTF-8 for proper encoding
+            $cmd  = sprintf('pdftotext -enc UTF-8 -layout %s %s 2>&1', escapeshellarg($absPath), escapeshellarg($outFile));
+            exec($cmd, $out, $code);
+
+            if ($code === 0 && file_exists($outFile)) {
+                $text = file_get_contents($outFile);
+                if (is_string($text) && trim($text) !== '') {
+                    return $this->cleanPdfText($text);
+                }
+            }
+
+            // pdftotext not available or failed — try raw binary scan for readable text
+            // (last resort, very limited)
+            return '';
+        } finally {
+            if (file_exists($outFile)) {
+                @unlink($outFile);
+            }
+        }
+    }
+
+    /**
+     * Clean up extracted PDF text (remove form-feed chars, normalize whitespace).
+     */
+    private function cleanPdfText(string $text): string
+    {
+        // Remove PDF form-feed characters
+        $text = str_replace("\f", "\n\n", $text);
+        // Normalize line endings
+        $text = str_replace(["\r\n", "\r"], "\n", $text);
+        // Collapse excessive blank lines (>2 consecutive) to 2
+        $text = preg_replace('/\n{3,}/', "\n\n", $text);
+        return trim($text);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -148,9 +296,21 @@ class WordAnonymizerController extends Controller
         }
 
         $docPath = session('wa_doc_path');
+        $sourceType = session('wa_source_type', 'word');
+
+        // For PDF and plain-text sources there is no Word file to anonymize
+        if ($sourceType !== 'word') {
+            return response()->json([
+                'success'       => true,
+                'message'       => 'Texto anonimizado correctamente.',
+                'download_url'  => null,
+                'source_type'   => $sourceType,
+            ]);
+        }
+
         if (!$docPath || !Storage::disk('local')->exists($docPath)) {
             return response()->json([
-                'error' => 'No hay documento en sesión. Por favor, suba el archivo nuevamente.',
+                'error' => 'No hay documento Word en sesión. Por favor, suba el archivo nuevamente.',
             ], 422);
         }
 
@@ -172,6 +332,7 @@ class WordAnonymizerController extends Controller
                 'success'      => true,
                 'message'      => 'Documento anonimizado generado correctamente.',
                 'download_url' => route('word-anonymizer.download'),
+                'source_type'  => 'word',
             ]);
         } catch (\Exception $e) {
             Log::error('WordAnonymizer: error anonimizando', ['message' => $e->getMessage()]);

@@ -6,6 +6,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EntityConfigController;
 use App\Http\Controllers\GestionarUnidadController;
 use App\Http\Controllers\OcrExtractorController;
+use App\Http\Controllers\OllamaTestController;
 use App\Http\Controllers\PdfAnalyzerController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SwitchUnidadController;
@@ -89,9 +90,15 @@ Route::middleware('auth')->group(function () {
 
     // ── Anonimizador de Word ──────────────────────────────────────────────
     Route::get('/word-anonymizer', [WordAnonymizerController::class, 'index'])->name('word-anonymizer.index');
-    Route::post('/word-anonymizer/process', [WordAnonymizerController::class, 'process'])->name('word-anonymizer.process');    Route::post('/word-anonymizer/analyze', [WordAnonymizerController::class, 'analyzeText'])->name('word-anonymizer.analyze');
+    Route::post('/word-anonymizer/process', [WordAnonymizerController::class, 'process'])->name('word-anonymizer.process');
+    Route::post('/word-anonymizer/process-pdf', [WordAnonymizerController::class, 'processPdf'])->name('word-anonymizer.process-pdf');
+    Route::post('/word-anonymizer/analyze', [WordAnonymizerController::class, 'analyzeText'])->name('word-anonymizer.analyze');
     Route::post('/word-anonymizer/anonymize', [WordAnonymizerController::class, 'anonymize'])->name('word-anonymizer.anonymize');
     Route::get('/word-anonymizer/download', [WordAnonymizerController::class, 'download'])->name('word-anonymizer.download');
+
+    // ── Probar modelo (Ollama LLM) ────────────────────────────────────────
+    Route::get('/ollama/test',  [OllamaTestController::class, 'index'])->name('ollama.test');
+    Route::post('/ollama/test', [OllamaTestController::class, 'sendMessage'])->name('ollama.send');
     // ── Gestión de entidades (colores por usuario) ──────────────────────
     Route::get('/entity-config', [EntityConfigController::class, 'index'])->name('entity-config.index');
     Route::post('/entity-config', [EntityConfigController::class, 'save'])->name('entity-config.save');

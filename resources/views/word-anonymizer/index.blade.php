@@ -179,7 +179,7 @@
     overflow-y: auto; padding: .7rem .9rem;
     background: var(--input-bg); line-height: 1.8; font-size: .875rem;
     color: var(--body-color); overflow-wrap: break-word; word-break: break-word;
-    min-height: calc(100vh - 260px); max-height: calc(100vh - 160px);
+    min-height: 120px; max-height: calc(100vh - 160px);
     flex: 1;
 }
 .wa-editor[data-empty="true"]::before {
@@ -187,10 +187,12 @@
     font-style: italic; pointer-events: none; display: block;
 }
 .wa-empty {
-    text-align: center; padding: 2.8rem 1rem; color: var(--muted-color);
+    text-align: center; padding: 1.5rem 1rem 1rem; color: var(--muted-color);
+    border: 1.5px dashed var(--input-border); border-radius: 8px; margin-bottom: .5rem;
+    background: var(--input-bg);
 }
-.wa-empty i  { font-size: 1.9rem; display: block; margin-bottom: .55rem; }
-.wa-empty p  { font-size: .81rem; line-height: 1.65; margin: 0; }
+.wa-empty i  { font-size: 1.5rem; display: block; margin-bottom: .4rem; }
+.wa-empty p  { font-size: .79rem; line-height: 1.65; margin: 0; }
 
 /*  ENTITY SPANS  */
 .entity {
@@ -276,12 +278,12 @@
     {{--  SIDEBAR  --}}
     <div class="wa-sidebar" id="wa-sidebar">
 
-        {{-- Upload --}}
+        {{-- Upload WORD --}}
         <div class="wc">
             <div class="wc-head">
                 <div class="wc-icon wc-icon-blue"><i class="fas fa-file-word"></i></div>
                 <div class="wc-title-stack">
-                    <span class="wc-title">Subir documento</span>
+                    <span class="wc-title">Subir documento Word</span>
                     <span class="wc-sub">Word / ODT / RTF · máx. 50 MB</span>
                 </div>
             </div>
@@ -293,7 +295,7 @@
                                accept=".doc,.docx,.dot,.dotx,.dotm,.docm,.odt,.rtf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.oasis.opendocument.text,application/rtf">
                         <i class="fas fa-file-word dz-icon"></i>
                         <div class="dz-title">Arrastrá o hacé clic</div>
-                        <div class="dz-sub">para seleccionar archivo</div>
+                        <div class="dz-sub">para seleccionar archivo Word</div>
                         <div class="fmt-badges">
                             <span class="fmt-badge">DOCX</span><span class="fmt-badge">DOC</span>
                             <span class="fmt-badge">ODT</span><span class="fmt-badge">RTF</span>
@@ -314,7 +316,53 @@
                         <div class="prg-bar"><div class="prg-fill" id="prg-up-fill"></div></div>
                     </div>
                     <button type="submit" class="btn-procesar" id="btn-procesar" disabled>
-                        <i class="fas fa-file-export"></i> Procesar
+                        <i class="fas fa-file-export"></i> Procesar Word
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        {{-- Upload PDF --}}
+        <div class="wc">
+            <div class="wc-head">
+                <div class="wc-icon" style="background:linear-gradient(135deg,#dc2626,#b91c1c);box-shadow:0 2px 8px rgba(220,38,38,.3);">
+                    <i class="fas fa-file-pdf"></i>
+                </div>
+                <div class="wc-title-stack">
+                    <span class="wc-title">Subir documento PDF</span>
+                    <span class="wc-sub">PDF · máx. 50 MB</span>
+                </div>
+            </div>
+            <div class="wc-body">
+                <form id="wa-pdf-form" novalidate>
+                    @csrf
+                    <div class="drop-zone" id="pdf-drop-zone">
+                        <input type="file" id="pdf-input" name="pdf"
+                               accept=".pdf,application/pdf">
+                        <i class="fas fa-file-pdf dz-icon" style="color:#dc2626;"></i>
+                        <div class="dz-title">Arrastrá o hacé clic</div>
+                        <div class="dz-sub">para seleccionar PDF</div>
+                        <div class="fmt-badges">
+                            <span class="fmt-badge" style="background:color-mix(in srgb,#dc2626 12%,var(--badge-light-bg));border-color:color-mix(in srgb,#dc2626 25%,transparent);color:#dc2626;">PDF</span>
+                        </div>
+                    </div>
+                    <div class="file-preview" id="pdf-file-preview">
+                        <i class="fp-icon fas fa-file-pdf" style="color:#dc2626;"></i>
+                        <div class="fp-info">
+                            <div class="fp-name" id="pdf-fp-name"></div>
+                            <div class="fp-size" id="pdf-fp-size"></div>
+                        </div>
+                        <button type="button" class="fp-remove" id="btn-pdf-remove" title="Quitar archivo">
+                            <i class="fas fa-times-circle"></i>
+                        </button>
+                    </div>
+                    <div class="prg-wrap mt-2" id="prg-pdf-up">
+                        <div class="prg-lbl">Extrayendo texto del PDF</div>
+                        <div class="prg-bar"><div class="prg-fill" id="prg-pdf-up-fill" style="background:linear-gradient(90deg,#dc2626,#b91c1c);"></div></div>
+                    </div>
+                    <button type="submit" class="btn-procesar" id="btn-procesar-pdf" disabled
+                            style="background:linear-gradient(135deg,#dc2626,#b91c1c);box-shadow:0 3px 12px rgba(220,38,38,.3);">
+                        <i class="fas fa-file-export"></i> Procesar PDF
                     </button>
                 </form>
             </div>
@@ -353,13 +401,13 @@
             </div>
         </div>
 
-        {{-- Download (hidden) --}}
+        {{-- Download WORD (hidden, shown only when source is Word) --}}
         <div class="wc" id="download-card" style="display:none;">
             <div class="wc-head">
                 <div class="wc-icon wc-icon-green"><i class="fas fa-file-word"></i></div>
                 <div class="wc-title-stack">
                     <span class="wc-title">Listo para descargar</span>
-                    <span class="wc-sub">Documento anonimizado</span>
+                    <span class="wc-sub">Documento Word anonimizado</span>
                 </div>
             </div>
             <div class="wc-body">
@@ -370,6 +418,25 @@
                 <a href="{{ route('word-anonymizer.download') }}" class="btn-dl-word" target="_blank">
                     <i class="fas fa-file-arrow-down"></i> Descargar .docx
                 </a>
+            </div>
+        </div>
+
+        {{-- Completion card for PDF / plain (no Word download) --}}
+        <div class="wc" id="done-card" style="display:none;border-color:#10b981;">
+            <div class="wc-head">
+                <div class="wc-icon wc-icon-green"><i class="fas fa-circle-check"></i></div>
+                <div class="wc-title-stack">
+                    <span class="wc-title">Anonimización completada</span>
+                    <span class="wc-sub" id="done-card-sub">Texto anonimizado</span>
+                </div>
+            </div>
+            <div class="wc-body">
+                <p style="font-size:.77rem;color:var(--muted-color);margin-bottom:.65rem;">
+                    El texto en el panel central refleja los cambios. Podés copiarlo o descargarlo como .txt.
+                </p>
+                <button class="btn-dl-word" id="btn-dl-txt-done" style="background:linear-gradient(135deg,#059669,#10b981);">
+                    <i class="fas fa-file-arrow-down"></i> Descargar .txt
+                </button>
             </div>
         </div>
 
@@ -384,7 +451,9 @@
                 <div style="display:flex;align-items:center;gap:.5rem;flex-shrink:0;min-width:0;">
                     <div class="wc-icon wc-icon-green"><i class="fas fa-file-lines"></i></div>
                     <div class="wc-title-stack">
-                        <span class="wc-title">Texto extraído</span>
+                        <span class="wc-title">Texto a analizar
+                            <span id="source-badge" style="display:none;margin-left:.35rem;font-size:.63rem;font-weight:600;padding:.1rem .38rem;border-radius:10px;vertical-align:middle;background:var(--badge-light-bg);color:var(--muted-color);border:1px solid var(--badge-light-border);"></span>
+                        </span>
                         <div class="stats-bar" id="stats-bar" style="display:none;">
                             <span id="s-chars"><i class="fas fa-font"></i> </span>
                             <span id="s-words"><i class="fas fa-align-left"></i> </span>
@@ -405,15 +474,21 @@
             </div>
             <div style="padding:.45rem .75rem .6rem;flex:1;display:flex;flex-direction:column;">
                 <div class="wa-empty" id="wa-empty">
-                    <i class="fas fa-file-dashed-line"></i>
-                    <p>Subí un archivo Word y hacé clic en <strong>Procesar</strong><br>para ver el texto aquí.</p>
+                    <i class="fas fa-keyboard"></i>
+                    <p>
+                        <strong>Tres formas de cargar texto:</strong><br>
+                        <span style="font-size:.77rem;">
+                            <i class="fas fa-file-word me-1" style="color:#2563eb;"></i>Procesá un <strong>Word</strong> o un <strong>PDF</strong> con los paneles de la izquierda,<br>
+                            o <i class="fas fa-paste me-1" style="color:#059669;"></i><strong>pegá texto directamente</strong> en el área de abajo.
+                        </span>
+                    </p>
                 </div>
                 <div id="wa-editor"
                      contenteditable="true"
-                     data-placeholder="El texto aparecerá aquí. Podés editarlo antes de analizar."
+                     data-placeholder="Pegá o escribí el texto aquí para analizarlo y anonimizarlo…"
                      data-empty="true"
                      class="wa-editor"
-                     style="display:none;"></div>
+                     style="display:block;"></div>
             </div>
         </div>
 
@@ -479,24 +554,40 @@ const LMAP  = { PER:'PERSONA',PERSON:'PERSONA',ORG:'ORGANIZACIÓN',LOC:'LUGAR',G
 const ORDER = ['PERSONA','ORGANIZACIÓN','LUGAR','FECHA','DNI','EMAIL','TELÉFONO','OTRO'];
 const WEXT  = ['.doc','.docx','.dot','.dotx','.dotm','.docm','.odt','.rtf'];
 
+// ── Source tracking: 'word' | 'pdf' | 'plain' ─────────────────────────────
+let currentSource = 'plain';
+
 /*  DOM refs  */
 const $  = id => document.getElementById(id);
-const waForm      = $('wa-form');
-const wordInput   = $('word-input');
-const dropZone    = $('drop-zone');
-const filePreview = $('file-preview');
-const fpName      = $('fp-name');
-const fpSize      = $('fp-size');
-const btnRemove   = $('btn-remove');
-const btnProcesar = $('btn-procesar');
-const prgUp       = $('prg-up');
-const prgUpFill   = $('prg-up-fill');
+const waForm         = $('wa-form');
+const wordInput      = $('word-input');
+const dropZone       = $('drop-zone');
+const filePreview    = $('file-preview');
+const fpName         = $('fp-name');
+const fpSize         = $('fp-size');
+const btnRemove      = $('btn-remove');
+const btnProcesar    = $('btn-procesar');
+const prgUp          = $('prg-up');
+const prgUpFill      = $('prg-up-fill');
+// PDF panel
+const waPdfForm      = $('wa-pdf-form');
+const pdfInput       = $('pdf-input');
+const pdfDropZone    = $('pdf-drop-zone');
+const pdfPreview     = $('pdf-file-preview');
+const pdfFpName      = $('pdf-fp-name');
+const pdfFpSize      = $('pdf-fp-size');
+const btnPdfRemove   = $('btn-pdf-remove');
+const btnProcesarPdf = $('btn-procesar-pdf');
+const prgPdfUp       = $('prg-pdf-up');
+const prgPdfUpFill   = $('prg-pdf-up-fill');
+
 const waEmpty     = $('wa-empty');
 const waEditor    = $('wa-editor');
 const statsBar    = $('stats-bar');
 const sChars      = $('s-chars');
 const sWords      = $('s-words');
 const sLines      = $('s-lines');
+const sourceBadge = $('source-badge');
 const btnAnalizar = $('btn-analizar');
 const btnCopy     = $('btn-copy');
 const btnDlTxt    = $('btn-dl-txt');
@@ -511,6 +602,9 @@ const btnAnonimizar = $('btn-anonimizar');
 const prgAnon     = $('prg-anon');
 const prgAnonFill = $('prg-anon-fill');
 const dlCard      = $('download-card');
+const doneCard    = $('done-card');
+const doneCardSub = $('done-card-sub');
+const btnDlTxtDone= $('btn-dl-txt-done');
 const tip         = $('wa-tip');
 const ctx         = $('wa-ctx');
 const toasts      = $('wa-toasts');
@@ -538,9 +632,10 @@ function progress(wEl, fEl){
     };
 }
 
-const pgUp   = progress(prgUp,   prgUpFill);
-const pgAn   = progress(prgAn,   prgAnFill);
-const pgAnon = progress(prgAnon, prgAnonFill);
+const pgUp    = progress(prgUp,    prgUpFill);
+const pgPdfUp = progress(prgPdfUp, prgPdfUpFill);
+const pgAn    = progress(prgAn,    prgAnFill);
+const pgAnon  = progress(prgAnon,  prgAnonFill);
 
 function toast(msg, type='i'){
     const icons = {s:'fa-circle-check',e:'fa-circle-exclamation',i:'fa-circle-info'};
@@ -610,7 +705,7 @@ etCbs.forEach(cb=>{
 $('btn-all').addEventListener('click',e=>{ e.preventDefault(); etCbs.forEach(cb=>{ cb.checked=true; document.querySelector(`.et-lbl[data-entity-type="${cb.dataset.entityType}"]`)?.classList.remove('disabled'); }); });
 $('btn-none').addEventListener('click',e=>{ e.preventDefault(); etCbs.forEach(cb=>{ cb.checked=false; document.querySelector(`.et-lbl[data-entity-type="${cb.dataset.entityType}"]`)?.classList.add('disabled'); }); });
 
-/*  File input & drag-drop  */
+/*  File input & drag-drop — WORD  */
 function setPreview(file){
     curFile = file.name.replace(/\.(doc|docx|dot|dotx|dotm|docm|odt|rtf)$/i,'') + '.txt';
     fpName.textContent = file.name; fpSize.textContent = fmtBytes(file.size);
@@ -633,7 +728,44 @@ dropZone.addEventListener('drop',e=>{
     setPreview(file);
 });
 
+/*  File input & drag-drop — PDF  */
+function setPdfPreview(file){
+    curFile = file.name.replace(/\.pdf$/i,'') + '.txt';
+    pdfFpName.textContent = file.name; pdfFpSize.textContent = fmtBytes(file.size);
+    pdfPreview.classList.add('show'); btnProcesarPdf.disabled = false;
+    resetAll();
+}
+function clearPdfFile(){
+    pdfInput.value=''; pdfPreview.classList.remove('show'); btnProcesarPdf.disabled=true;
+}
+pdfInput.addEventListener('change',()=>{ if(pdfInput.files[0]) setPdfPreview(pdfInput.files[0]); });
+btnPdfRemove.addEventListener('click', clearPdfFile);
+
+pdfDropZone.addEventListener('dragover',e=>{ e.preventDefault(); pdfDropZone.classList.add('drag-over'); });
+['dragleave','dragend'].forEach(ev=>pdfDropZone.addEventListener(ev,()=>pdfDropZone.classList.remove('drag-over')));
+pdfDropZone.addEventListener('drop',e=>{
+    e.preventDefault(); pdfDropZone.classList.remove('drag-over');
+    const file=e.dataTransfer?.files[0]; if(!file) return;
+    if(!file.name.toLowerCase().endsWith('.pdf') && file.type!=='application/pdf'){
+        toast('Solo se aceptan archivos PDF','e'); return;
+    }
+    const dt=new DataTransfer(); dt.items.add(file); pdfInput.files=dt.files;
+    setPdfPreview(file);
+});
+
 /*  Editor state  */
+function setSource(src, label){
+    currentSource = src;
+    if(sourceBadge){
+        if(src !== 'plain' && label){
+            sourceBadge.textContent = label;
+            sourceBadge.style.display = 'inline';
+        } else {
+            sourceBadge.style.display = 'none';
+        }
+    }
+}
+
 function showEditorText(text){
     waEmpty.style.display='none'; waEditor.style.display='block';
     waEditor.innerText=text; syncEmpty(); enableBtns(true);
@@ -642,17 +774,49 @@ function showEditorHtml(html){
     waEmpty.style.display='none'; waEditor.style.display='block';
     waEditor.innerHTML=html; syncEmpty();
 }
-function syncEmpty(){ waEditor.setAttribute('data-empty', waEditor.innerText.trim()===''?'true':'false'); }
+function syncEmpty(){
+    const isEmpty = waEditor.innerText.trim()==='';
+    waEditor.setAttribute('data-empty', isEmpty?'true':'false');
+    // Hide/show the empty state banner
+    if(!isEmpty){
+        waEmpty.style.display='none';
+        waEditor.style.display='block';
+        enableBtns(true);
+    } else {
+        // Don't force hide — let user see the placeholder via CSS
+        enableBtns(false);
+    }
+}
 function enableBtns(on){ btnAnalizar.disabled=!on; btnCopy.disabled=!on; btnDlTxt.disabled=!on; btnClear.disabled=!on; }
-waEditor.addEventListener('input',syncEmpty);
-waEditor.addEventListener('paste',()=>setTimeout(syncEmpty,0));
+
+// Intercept paste to keep only plain text
+waEditor.addEventListener('paste', e => {
+    e.preventDefault();
+    const plain = (e.clipboardData || window.clipboardData).getData('text/plain');
+    document.execCommand('insertText', false, plain);
+    // If pasting into an empty editor, set source to plain
+    if(currentSource === 'plain') setSource('plain', null);
+    setTimeout(syncEmpty, 0);
+});
+waEditor.addEventListener('input', syncEmpty);
+
+// On focus: if editor is empty and we had a banner, make sure editor fills space
+waEditor.addEventListener('focus', ()=>{
+    if(waEditor.getAttribute('data-empty') === 'true'){
+        // user is about to type — hide empty banner and set source to plain
+        waEmpty.style.display='none';
+    }
+});
 
 function resetAll(){
     waEntCard.style.display='none'; waMain.classList.remove('split');
-    waEmpty.style.display=''; waEditor.style.display='none';
+    // Keep the editor visible (always shown) — just clear content
+    waEmpty.style.display=''; waEditor.style.display='block';
     waEditor.innerHTML=''; waEditor.setAttribute('data-empty','true');
-    statsBar.style.display='none'; enableBtns(false); dlCard.style.display='none';
+    statsBar.style.display='none'; enableBtns(false);
+    dlCard.style.display='none'; doneCard.style.display='none';
     entTbody.innerHTML=''; lastFlash=null; hideTip(); closeCtx();
+    setSource('plain', null);
 }
 
 function showEntityPanel(grouped){
@@ -661,7 +825,7 @@ function showEntityPanel(grouped){
     waEntCard.style.display='flex'; waMain.classList.add('split');
 }
 
-/*  Process (upload)  */
+/*  Process (upload Word)  */
 waForm.addEventListener('submit', async e=>{
     e.preventDefault();
     if(!wordInput.files[0]){ toast('Seleccioná un archivo Word.','e'); return; }
@@ -675,6 +839,7 @@ waForm.addEventListener('submit', async e=>{
         const r = await fetch('{{ route("word-anonymizer.process") }}',{ method:'POST',credentials:'same-origin',headers:{'X-CSRF-TOKEN':csrf(),'Accept':'application/json'},body:fd });
         const d = await r.json();
         if(!r.ok) throw new Error(d.error??d.message??'Error al procesar el archivo.');
+        setSource('word', 'Word');
         showEditorText(d.text);
         statsBar.style.display='flex';
         sChars.innerHTML=`<i class="fas fa-font"></i> ${d.chars.toLocaleString()} car.`;
@@ -682,7 +847,32 @@ waForm.addEventListener('submit', async e=>{
         sLines.innerHTML=`<i class="fas fa-list"></i> ${d.lines.toLocaleString()} lín.`;
         toast('Texto extraído correctamente.','s');
     } catch(err){ toast(err.message,'e'); }
-    finally{ pgUp.finish(); btnProcesar.disabled=false; btnProcesar.innerHTML='<i class="fas fa-file-export"></i> Procesar'; }
+    finally{ pgUp.finish(); btnProcesar.disabled=false; btnProcesar.innerHTML='<i class="fas fa-file-export"></i> Procesar Word'; }
+});
+
+/*  Process (upload PDF)  */
+waPdfForm.addEventListener('submit', async e=>{
+    e.preventDefault();
+    if(!pdfInput.files[0]){ toast('Seleccioná un archivo PDF.','e'); return; }
+
+    btnProcesarPdf.disabled=true; btnProcesarPdf.innerHTML='<i class="fas fa-spinner fa-spin"></i> Procesando';
+    pgPdfUp.start(); resetAll();
+
+    const fd=new FormData(); fd.append('pdf',pdfInput.files[0]); fd.append('_token',csrf());
+    try{
+        const r = await fetch('{{ route("word-anonymizer.process-pdf") }}',{ method:'POST',credentials:'same-origin',headers:{'X-CSRF-TOKEN':csrf(),'Accept':'application/json'},body:fd });
+        const d = await r.json();
+        if(!r.ok) throw new Error(d.error??d.message??'Error al procesar el PDF.');
+        setSource('pdf', 'PDF');
+        showEditorText(d.text);
+        statsBar.style.display='flex';
+        sChars.innerHTML=`<i class="fas fa-font"></i> ${d.chars.toLocaleString()} car.`;
+        sWords.innerHTML=`<i class="fas fa-align-left"></i> ${d.words.toLocaleString()} pal.`;
+        sLines.innerHTML=`<i class="fas fa-list"></i> ${d.lines.toLocaleString()} lín.`;
+        const mLabel = d.method==='ocr' ? 'Extraído vía OCR.' : 'Extraído vía texto nativo.';
+        toast(mLabel, 's');
+    } catch(err){ toast(err.message,'e'); }
+    finally{ pgPdfUp.finish(); btnProcesarPdf.disabled=false; btnProcesarPdf.innerHTML='<i class="fas fa-file-export"></i> Procesar PDF'; }
 });
 
 /*  Header buttons  */
@@ -698,7 +888,16 @@ btnDlTxt.addEventListener('click',()=>{
     document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(u);
     toast('Archivo descargado.','s');
 });
-btnClear.addEventListener('click',()=>{ clearFile(); resetAll(); });
+btnClear.addEventListener('click',()=>{ clearFile(); clearPdfFile(); resetAll(); });
+
+// Done-card download txt button
+if(btnDlTxtDone) btnDlTxtDone.addEventListener('click',()=>{
+    const t=waEditor.innerText; if(!t.trim()) return;
+    const u=URL.createObjectURL(new Blob([t],{type:'text/plain;charset=utf-8'}));
+    const a=Object.assign(document.createElement('a'),{href:u,download:curFile});
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(u);
+    toast('Archivo descargado.','s');
+});
 
 /*  Analyze  */
 btnAnalizar.addEventListener('click', async()=>{
@@ -959,7 +1158,7 @@ btnAnonimizar.addEventListener('click', async()=>{
     if(!Object.keys(replacements).length){ toast('Completá al menos una etiqueta.','e'); return; }
 
     btnAnonimizar.disabled=true; btnAnonimizar.innerHTML='<i class="fas fa-spinner fa-spin"></i> Generando';
-    pgAnon.start(); dlCard.style.display='none';
+    pgAnon.start(); dlCard.style.display='none'; doneCard.style.display='none';
 
     // Visual replacement in editor
     for(const row of rows){
@@ -988,8 +1187,17 @@ btnAnonimizar.addEventListener('click', async()=>{
         const d=await r.json();
         if(!r.ok) throw new Error(d.error??d.message??'Error al generar el documento.');
         waEntCard.style.display='none'; waMain.classList.remove('split');
-        dlCard.style.display='block'; dlCard.scrollIntoView({behavior:'smooth',block:'nearest'});
-        toast('Documento anonimizado listo para descargar.','s');
+        // Show the right completion card based on source type
+        if(d.source_type === 'word' && d.download_url){
+            dlCard.style.display='block'; dlCard.scrollIntoView({behavior:'smooth',block:'nearest'});
+            toast('Documento Word anonimizado listo para descargar.','s');
+        } else {
+            // PDF or plain text source
+            const srcLabel = currentSource==='pdf' ? 'PDF' : 'texto plano';
+            if(doneCardSub) doneCardSub.textContent = `Texto anonimizado (${srcLabel})`;
+            doneCard.style.display='block'; doneCard.scrollIntoView({behavior:'smooth',block:'nearest'});
+            toast('Texto anonimizado correctamente.','s');
+        }
     } catch(err){ toast(err.message,'e'); }
     finally{ pgAnon.finish(); btnAnonimizar.disabled=false; btnAnonimizar.innerHTML='<i class="fas fa-shield-halved"></i> Anonimizar'; }
 });

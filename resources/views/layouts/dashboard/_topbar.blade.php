@@ -56,6 +56,68 @@
         </nav>
     </div>
 
+    @auth
+    {{-- ── Selector de unidad activa (junto al breadcrumb) ──────────── --}}
+    @php
+        $__authUser      = auth()->user();
+        $__unidadActiva  = app(\App\Services\UnidadActivaService::class)->get($__authUser);
+        $__misUnidades   = $__authUser->unidades()->orderBy('descripcion')->get();
+    @endphp
+
+    @if($__unidadActiva)
+        @if($__misUnidades->count() > 1)
+            <div class="dropdown" id="unidad-selector-wrap">
+                <button class="btn btn-sm dropdown-toggle d-flex align-items-center gap-1"
+                        id="unidadDropdown"
+                        type="button"
+                        data-bs-toggle="dropdown"
+                        aria-expanded="false"
+                        style="background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:.78rem;padding:.28rem .65rem;max-width:264px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"
+                        title="{{ $__unidadActiva->descripcion }}">
+                    <i class="fas fa-sitemap" style="flex-shrink:0"></i>
+                    <span style="overflow:hidden;text-overflow:ellipsis;max-width:204px;display:inline-block;">
+                        {{ $__unidadActiva->descripcion }}
+                    </span>
+                </button>
+                <ul class="dropdown-menu shadow-sm"
+                    aria-labelledby="unidadDropdown"
+                    style="min-width:310px;font-size:.82rem;border-radius:12px;border:1px solid var(--card-border);background:var(--card-bg);padding:.4rem .3rem;">
+                    <li class="px-3 py-1" style="color:var(--body-color);opacity:.55;font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;">
+                        Cambiar unidad de trabajo
+                    </li>
+                    @foreach($__misUnidades as $__u)
+                    <li>
+                        <form method="POST" action="{{ route('switch-unidad') }}" class="mb-0">
+                            @csrf
+                            <input type="hidden" name="unidad_id" value="{{ $__u->id }}">
+                            <button type="submit"
+                                    class="dropdown-item d-flex align-items-center gap-2"
+                                    style="border-radius:8px;color:var(--body-color);{{ $__u->id === $__unidadActiva->id ? 'font-weight:600;color:var(--accent);' : '' }}">
+                                @if($__u->id === $__unidadActiva->id)
+                                    <i class="fas fa-check-circle text-success" style="width:14px"></i>
+                                @else
+                                    <i class="fas fa-sitemap" style="width:14px;opacity:.4"></i>
+                                @endif
+                                {{ $__u->descripcion }}
+                            </button>
+                        </form>
+                    </li>
+                    @endforeach
+                </ul>
+            </div>
+        @else
+            <span class="d-flex align-items-center gap-1"
+                  style="background:var(--accent);color:#fff;border-radius:8px;font-size:.78rem;padding:.28rem .65rem;max-width:264px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"
+                  title="{{ $__unidadActiva->descripcion }}">
+                <i class="fas fa-sitemap" style="flex-shrink:0"></i>
+                <span style="overflow:hidden;text-overflow:ellipsis;max-width:204px;display:inline-block;">
+                    {{ $__unidadActiva->descripcion }}
+                </span>
+            </span>
+        @endif
+    @endif
+    @endauth
+
     <div class="topbar-actions">
         @if(isset($mes, $anio))
             <span class="period-badge">
@@ -80,77 +142,16 @@
         </div>
 
         @auth
-        {{-- ── Selector de unidad activa ─────────────────────────────── --}}
-        @php
-            $__authUser      = auth()->user();
-            $__unidadActiva  = app(\App\Services\UnidadActivaService::class)->get($__authUser);
-            $__misUnidades   = $__authUser->unidades()->orderBy('descripcion')->get();
-        @endphp
-
-        @if($__unidadActiva)
-            @if($__misUnidades->count() > 1)
-                <div class="dropdown" id="unidad-selector-wrap">
-                    <button class="btn btn-sm dropdown-toggle d-flex align-items-center gap-1"
-                            id="unidadDropdown"
-                            type="button"
-                            data-bs-toggle="dropdown"
-                            aria-expanded="false"
-                            style="background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:.78rem;padding:.28rem .65rem;max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"
-                            title="{{ $__unidadActiva->descripcion }}">
-                        <i class="fas fa-sitemap" style="flex-shrink:0"></i>
-                        <span style="overflow:hidden;text-overflow:ellipsis;max-width:170px;display:inline-block;">
-                            {{ $__unidadActiva->descripcion }}
-                        </span>
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow-sm"
-                        aria-labelledby="unidadDropdown"
-                        style="min-width:260px;font-size:.82rem;border-radius:12px;border:1px solid var(--card-border);background:var(--card-bg);padding:.4rem .3rem;">
-                        <li class="px-3 py-1" style="color:var(--body-color);opacity:.55;font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;">
-                            Cambiar unidad de trabajo
-                        </li>
-                        @foreach($__misUnidades as $__u)
-                        <li>
-                            <form method="POST" action="{{ route('switch-unidad') }}" class="mb-0">
-                                @csrf
-                                <input type="hidden" name="unidad_id" value="{{ $__u->id }}">
-                                <button type="submit"
-                                        class="dropdown-item d-flex align-items-center gap-2"
-                                        style="border-radius:8px;color:var(--body-color);{{ $__u->id === $__unidadActiva->id ? 'font-weight:600;color:var(--accent);' : '' }}">
-                                    @if($__u->id === $__unidadActiva->id)
-                                        <i class="fas fa-check-circle text-success" style="width:14px"></i>
-                                    @else
-                                        <i class="fas fa-sitemap" style="width:14px;opacity:.4"></i>
-                                    @endif
-                                    {{ $__u->descripcion }}
-                                </button>
-                            </form>
-                        </li>
-                        @endforeach
-                    </ul>
-                </div>
-            @else
-                <span class="d-flex align-items-center gap-1"
-                      style="background:var(--accent);color:#fff;border-radius:8px;font-size:.78rem;padding:.28rem .65rem;max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"
-                      title="{{ $__unidadActiva->descripcion }}">
-                    <i class="fas fa-sitemap" style="flex-shrink:0"></i>
-                    <span style="overflow:hidden;text-overflow:ellipsis;max-width:170px;display:inline-block;">
-                        {{ $__unidadActiva->descripcion }}
-                    </span>
-                </span>
-            @endif
-        @endif
-
         {{-- ── Perfil del usuario ────────────────────────────────────── --}}
         <div class="dropdown ms-2" id="profile-dropdown-wrap">
-            <button type="button"
+                <button type="button"
                     class="d-flex align-items-center gap-2 topbar-btn"
                     id="profileDropdown"
                     data-bs-toggle="dropdown"
                     data-bs-auto-close="outside"
                     aria-expanded="false"
-                    style="border:1px solid var(--card-border);border-radius:10px;padding:.28rem .65rem;font-size:.82rem;color:var(--topbar-color);background:transparent;cursor:pointer;gap:.4rem">
-                <i class="fas fa-user-circle" style="color:var(--accent);font-size:1.1rem"></i>
-                <span class="d-none d-md-inline fw-semibold">Perfil</span>
+                    style="width:114px;border:none;border-radius:10px;padding:.28rem .65rem;font-size:.82rem;color:var(--topbar-color);background:transparent;cursor:pointer;gap:.4rem">
+                <span class="d-none d-md-inline fw-semibold">Mi perfil</span>
                 <i class="fas fa-chevron-down" style="font-size:.6rem;opacity:.5"></i>
             </button>
 
@@ -171,7 +172,8 @@
                             <div style="font-size:.75rem;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
                                 {{ auth()->user()->email }}
                             </div>
-                            <div class="mt-1 d-flex flex-wrap gap-1">
+                            <div class="mt-1 d-flex align-items-center flex-wrap gap-1">
+                                <span style="color:#fff;font-size:.63rem;opacity:.8;font-weight:500;letter-spacing:.2px;margin-right:.1rem">Rol:</span>
                                 @foreach(auth()->user()->roles as $__role)
                                     <span style="background:rgba(255,255,255,.22);color:#fff;font-size:.65rem;font-weight:600;padding:.15rem .5rem;border-radius:20px;text-transform:uppercase;letter-spacing:.5px">
                                         {{ ucfirst($__role->name) }}

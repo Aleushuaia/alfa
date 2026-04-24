@@ -9,6 +9,7 @@
     {{-- Prevenir FOUC: aplicar tema guardado antes del render --}}
     <script>
         (function(){var t=localStorage.getItem('alfa-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();
+        (function(){if(localStorage.getItem('sidebar-collapsed')==='true'){document.documentElement.classList.add('sidebar-is-collapsed');}})();
     </script>
 
     {{-- Favicon --}}

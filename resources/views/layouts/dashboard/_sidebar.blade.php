@@ -48,6 +48,13 @@
             <span class="nav-icon"><i class="fas fa-microphone"></i></span>
             <span>Transcripciones</span>
         </a>
+        <a href="{{ route('ollama.test') }}"
+           class="nav-link {{ request()->routeIs('ollama.*') ? 'active' : '' }}"
+           title=""
+           data-sidebar-tooltip="Probar modelo LLM">
+            <span class="nav-icon"><i class="fas fa-robot"></i></span>
+            <span>Probar modelo</span>
+        </a>
 
         {{-- ── Configuración ── visible para todos los autenticados --}}
         <p class="nav-section-label mt-2">Configuración</p>

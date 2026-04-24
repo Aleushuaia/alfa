@@ -51,6 +51,8 @@
             if (!sb) return;
 
             if (collapsed) {
+                // Sync html class for CSS-only pre-render support
+                document.documentElement.classList.add('sidebar-is-collapsed');
                 // Add collapsed class to trigger CSS rules
                 sb.classList.add('collapsed');
                 // Update CSS variable for width
@@ -59,6 +61,8 @@
                 if (pw) pw.style.marginLeft = COLLAPSED_W;
                 if (tb) tb.style.left = COLLAPSED_W;
             } else {
+                // Sync html class
+                document.documentElement.classList.remove('sidebar-is-collapsed');
                 // Remove collapsed class
                 sb.classList.remove('collapsed');
                 // Update CSS variable for width

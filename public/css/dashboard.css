@@ -170,6 +170,46 @@ h1, h2, h3, h4, h5, h6 { color: var(--heading-color); }
 #sidebar::-webkit-scrollbar { width: 4px; }
 #sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 4px; }
 
+/* ── Pre-render collapsed state (avoids FOUC when page loads collapsed) ── */
+html.sidebar-is-collapsed #sidebar {
+    width: 80px;
+    overflow-x: visible;
+    overflow-y: visible;
+}
+html.sidebar-is-collapsed #sidebar .sidebar-brand {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    overflow: hidden !important;
+}
+html.sidebar-is-collapsed #sidebar .nav-section-label {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+}
+html.sidebar-is-collapsed #sidebar .collapse-label        { display: none !important; }
+html.sidebar-is-collapsed #sidebar .sidebar-nav .nav-link > span:not(.nav-icon) { display: none !important; }
+html.sidebar-is-collapsed #sidebar .sidebar-footer-user   { display: none !important; }
+html.sidebar-is-collapsed #sidebar .sidebar-copy          { display: none !important; }
+html.sidebar-is-collapsed #sidebar .nav-link              { padding: .6rem 0; justify-content: center; border-left-color: transparent !important; }
+html.sidebar-is-collapsed #sidebar .sidebar-collapse-btn  { padding: .6rem 0; justify-content: center; border-left-color: transparent !important; }
+html.sidebar-is-collapsed #sidebar .nav-icon              { width: 100%; justify-content: center; margin: 0; }
+html.sidebar-is-collapsed #sidebar .sidebar-footer        { display: none; }
+html.sidebar-is-collapsed #sidebar .brand-image,
+html.sidebar-is-collapsed #sidebar .brand-icon .brand-image,
+html.sidebar-is-collapsed img.brand-image {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+    pointer-events: none !important;
+}
+html.sidebar-is-collapsed #collapse-icon { transform: rotate(180deg); }
+
 /* Collapsed state */
 #sidebar.collapsed {
     width: 80px;
@@ -329,7 +369,7 @@ h1, h2, h3, h4, h5, h6 { color: var(--heading-color); }
     display: flex;
     align-items: center;
     gap: .85rem;
-    padding: 1.4rem 1.5rem;
+    padding: 1.26rem 1.5rem;
     border-bottom: 1px solid var(--sidebar-border);
     text-decoration: none;
     background: #000 !important;
@@ -352,7 +392,7 @@ h1, h2, h3, h4, h5, h6 { color: var(--heading-color); }
 
 /* nav sections */
 .nav-section-label {
-    padding: .75rem 1.5rem .3rem;
+    padding: .6rem 1.5rem .24rem;
     font-size: .65rem;
     font-weight: 700;
     letter-spacing: .12em;
