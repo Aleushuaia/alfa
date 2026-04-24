@@ -1,10 +1,14 @@
 <?php
 
+use App\Http\Controllers\AdministradorUnidadController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EntityConfigController;
+use App\Http\Controllers\GestionarUnidadController;
 use App\Http\Controllers\OcrExtractorController;
 use App\Http\Controllers\PdfAnalyzerController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SwitchUnidadController;
 use App\Http\Controllers\TranscripcionController;
 use App\Http\Controllers\ThemeConfigController;
 use App\Http\Controllers\UnidadController;
@@ -28,6 +32,18 @@ Route::get('/', function () {
 // Rutas protegidas — requieren autenticación
 // ══════════════════════════════════════════════════════════════════════════════
 Route::middleware('auth')->group(function () {
+
+    // ── Cambiar unidad activa (sesión) ────────────────────────────────────
+    Route::post('/switch-unidad', SwitchUnidadController::class)->name('switch-unidad');
+
+    // ── Perfil: cambio de contraseña propio ──────────────────────────────
+    Route::post('/profile/change-password', [ProfileController::class, 'changePassword'])->name('profile.change-password');
+
+    // ── Gestionar Unidad (administradores de unidad, sin rol global) ─────
+    Route::get('/gestionar-unidad',                           [GestionarUnidadController::class, 'index'])->name('gestionar-unidad.index');
+    Route::get('/gestionar-unidad/{unidad}',                  [GestionarUnidadController::class, 'show'])->name('gestionar-unidad.show');
+    Route::post('/gestionar-unidad/{unidad}/users',           [GestionarUnidadController::class, 'attachUser'])->name('gestionar-unidad.attach-user');
+    Route::delete('/gestionar-unidad/{unidad}/users/{user}',  [GestionarUnidadController::class, 'detachUser'])->name('gestionar-unidad.detach-user');
 
     // ── Dashboard ─────────────────────────────────────────────────────────
     Route::get('/dashboard', [DashboardController::class, 'index'])
@@ -91,6 +107,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/users', [UserManagementController::class, 'index'])->name('users.index');
         Route::post('/users', [UserManagementController::class, 'store'])->name('users.store');
         Route::put('/users/{user}', [UserManagementController::class, 'update'])->name('users.update');
+        Route::put('/users/{user}/reset-password', [UserManagementController::class, 'resetPassword'])->name('users.reset-password');
         Route::delete('/users/{user}', [UserManagementController::class, 'destroy'])->name('users.destroy');
 
         // ── Unidades de Trabajo ──────────────────────────────────────────
@@ -98,5 +115,10 @@ Route::middleware('auth')->group(function () {
             ->parameters(['unidades' => 'unidad']);
         Route::post('/unidades/{unidad}/users',          [UnidadController::class, 'attachUser'])->name('unidades.attach-user');
         Route::delete('/unidades/{unidad}/users/{user}', [UnidadController::class, 'detachUser'])->name('unidades.detach-user');
+
+        // ── Administradores de Unidades ──────────────────────────────────
+        Route::get('/administradores-unidades',                        [AdministradorUnidadController::class, 'index'])->name('administradores-unidades.index');
+        Route::post('/administradores-unidades/attach',                [AdministradorUnidadController::class, 'attach'])->name('administradores-unidades.attach');
+        Route::delete('/administradores-unidades/{unidad}/{user}',     [AdministradorUnidadController::class, 'detach'])->name('administradores-unidades.detach');
     });
 });

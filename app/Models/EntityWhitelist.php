@@ -47,4 +47,13 @@ class EntityWhitelist extends Model
     {
         return $query->where('active', true);
     }
+
+    /**
+     * Unidad de trabajo propietaria de este término.
+     * NULL = registro global (sin unidad específica).
+     */
+    public function unidad()
+    {
+        return $this->belongsTo(\App\Models\Unidad::class, 'unidad_id');
+    }
 }

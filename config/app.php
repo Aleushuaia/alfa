@@ -41,6 +41,9 @@ return [
 
     'debug' => (bool) env('APP_DEBUG', false),
 
+    // Login simplificado sin contraseña (SOLO modo desarrollo)
+    'dev_login' => (bool) env('APP_DEV_LOGIN', false),
+
     /*
     |--------------------------------------------------------------------------
     | Application URL

@@ -7,8 +7,10 @@ use App\Models\EntityWhitelist;
 use App\Models\UserEntityColor;
 use App\Services\NlpEntityService;
 use App\Services\PdfTextExtractorService;
+use App\Services\UnidadActivaService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
 class PdfAnalyzerController extends Controller
@@ -151,6 +153,9 @@ class PdfAnalyzerController extends Controller
 
         $term       = trim($request->input('term'));
         $entityType = $request->input('entity_type') ?: null; // null = aplica a todos los tipos
+        $unidadId   = Auth::check()
+            ? optional(app(UnidadActivaService::class)->get(Auth::user()))->id
+            : null;
 
         try {
             // 2. Buscar si ya existe para evitar duplicados
@@ -164,6 +169,8 @@ class PdfAnalyzerController extends Controller
                         $q->where('entity_type', $entityType);
                     }
                 })
+                ->when($unidadId, fn($q) => $q->where('unidad_id', $unidadId))
+                ->when(!$unidadId, fn($q) => $q->whereNull('unidad_id'))
                 ->first();
 
             if ($entry) {
@@ -176,11 +183,12 @@ class PdfAnalyzerController extends Controller
                 EntityBlacklist::create([
                     'term'           => $term,
                     'entity_type'    => $entityType,
-                    'match_mode'     => 'exact',     // coincidencia exacta por defecto
-                    'case_sensitive' => false,        // ignorar mayúsculas/minúsculas
-                    'added_by'       => 'usuario',    // en el futuro puede ser el usuario autenticado
+                    'match_mode'     => 'exact',
+                    'case_sensitive' => false,
+                    'added_by'       => Auth::check() ? Auth::user()->name : 'usuario',
                     'reason'         => 'Ignorado manualmente desde el analizador de texto.',
                     'active'         => true,
+                    'unidad_id'      => $unidadId,
                 ]);
             }
 
@@ -438,6 +446,9 @@ class PdfAnalyzerController extends Controller
 
         $term       = trim($request->input('term'));
         $entityType = $request->input('entity_type') ?: null;
+        $unidadId   = Auth::check()
+            ? optional(app(UnidadActivaService::class)->get(Auth::user()))->id
+            : null;
 
         try {
             $entry = EntityWhitelist::where('term', $term)
@@ -448,6 +459,8 @@ class PdfAnalyzerController extends Controller
                         $q->where('entity_type', $entityType);
                     }
                 })
+                ->when($unidadId, fn($q) => $q->where('unidad_id', $unidadId))
+                ->when(!$unidadId, fn($q) => $q->whereNull('unidad_id'))
                 ->first();
 
             if ($entry) {
@@ -458,9 +471,10 @@ class PdfAnalyzerController extends Controller
                 EntityWhitelist::create([
                     'term'        => $term,
                     'entity_type' => $entityType,
-                    'added_by'    => 'usuario',
+                    'added_by'    => Auth::check() ? Auth::user()->name : 'usuario',
                     'reason'      => 'Agregado manualmente desde el analizador de texto.',
                     'active'      => true,
+                    'unidad_id'   => $unidadId,
                 ]);
             }
 
@@ -480,8 +494,18 @@ class PdfAnalyzerController extends Controller
     // ───────────────────────────────────────────────────────────────────────────────
     public function whitelistIndex()
     {
+        $unidadId = Auth::check()
+            ? optional(app(UnidadActivaService::class)->get(Auth::user()))->id
+            : null;
+
         try {
-            $entries = EntityWhitelist::orderBy('created_at', 'desc')->get();
+            $entries = EntityWhitelist::when(
+                    $unidadId,
+                    fn($q) => $q->where('unidad_id', $unidadId),
+                    fn($q) => $q->whereNull('unidad_id')
+                )
+                ->orderBy('created_at', 'desc')
+                ->get();
         } catch (\Exception $e) {
             \Log::error('Error al cargar whitelist: ' . $e->getMessage());
             $entries = collect();
@@ -634,8 +658,18 @@ class PdfAnalyzerController extends Controller
     // ─────────────────────────────────────────────────────────────────────────
     public function blacklistIndex()
     {
+        $unidadId = Auth::check()
+            ? optional(app(UnidadActivaService::class)->get(Auth::user()))->id
+            : null;
+
         try {
-            $entries = EntityBlacklist::orderBy('created_at', 'desc')->get();
+            $entries = EntityBlacklist::when(
+                    $unidadId,
+                    fn($q) => $q->where('unidad_id', $unidadId),
+                    fn($q) => $q->whereNull('unidad_id')
+                )
+                ->orderBy('created_at', 'desc')
+                ->get();
         } catch (\Exception $e) {
             \Log::error('Error al cargar blacklist: ' . $e->getMessage());
             $entries = collect();

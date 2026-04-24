@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -57,5 +56,15 @@ class User extends Authenticatable
             ->using(UserUnidad::class)
             ->withTimestamps()
             ->wherePivotNull('deleted_at');
+    }
+
+    /**
+     * Unidades de trabajo que este usuario administra.
+     */
+    public function unidadesAdministradas(): BelongsToMany
+    {
+        return $this->belongsToMany(Unidad::class, 'administradores_unidades')
+            ->using(AdministradorUnidad::class)
+            ->withTimestamps();
     }
 }

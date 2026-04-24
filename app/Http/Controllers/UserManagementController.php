@@ -12,7 +12,7 @@ class UserManagementController extends Controller
 {
     public function index()
     {
-        $users = User::with('roles')->orderBy('name')->get();
+        $users = User::with(['roles', 'unidades'])->withCount('unidades')->orderBy('name')->get();
         $roles = Role::orderBy('name')->get();
 
         return view('admin.users', compact('users', 'roles'));
@@ -75,5 +75,19 @@ class UserManagementController extends Controller
 
         return redirect()->route('admin.users.index')
             ->with('success', "Usuario «{$name}» eliminado correctamente.");
+    }
+
+    /**
+     * Resetear contraseña de un usuario (solo admin).
+     */
+    public function resetPassword(Request $request, User $user)
+    {
+        $data = $request->validate([
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $user->update(['password' => Hash::make($data['password'])]);
+
+        return back()->with('success', "Contraseña de «{$user->name}» actualizada correctamente.");
     }
 }

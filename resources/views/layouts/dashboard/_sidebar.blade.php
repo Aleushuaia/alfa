@@ -97,6 +97,25 @@
             <span class="nav-icon"><i class="fas fa-sitemap"></i></span>
             <span>Unidades de Trabajo</span>
         </a>
+        <a href="{{ route('admin.administradores-unidades.index') }}"
+           class="nav-link {{ request()->routeIs('admin.administradores-unidades.*') ? 'active' : '' }}"
+           title=""
+           data-sidebar-tooltip="Administradores de Unidades">
+            <span class="nav-icon"><i class="fas fa-user-shield"></i></span>
+            <span>Administradores de Unidades</span>
+        </a>
+        @endif
+
+        {{-- ── Gestionar Unidad ── visible para administradores de unidad --}}
+        @if(auth()->check() && !auth()->user()->hasRole('administrador') && auth()->user()->unidadesAdministradas()->exists())
+        <p class="nav-section-label mt-2">Mi Unidad</p>
+        <a href="{{ route('gestionar-unidad.index') }}"
+           class="nav-link {{ request()->routeIs('gestionar-unidad.*') ? 'active' : '' }}"
+           title=""
+           data-sidebar-tooltip="Gestionar mi Unidad">
+            <span class="nav-icon"><i class="fas fa-building-user"></i></span>
+            <span>Gestionar Unidad</span>
+        </a>
         @endif
 
         {{-- ── Panel ── --}}

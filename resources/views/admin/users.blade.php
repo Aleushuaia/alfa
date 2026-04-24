@@ -80,6 +80,7 @@
                                     <th class="px-3 py-2">Usuario</th>
                                     <th class="px-3 py-2">Email</th>
                                     <th class="px-3 py-2">Rol</th>
+                                    <th class="px-3 py-2">Unidades</th>
                                     <th class="px-3 py-2 text-end">Acciones</th>
                                 </tr>
                             </thead>
@@ -98,12 +99,38 @@
                                             </span>
                                         @endforeach
                                     </td>
+                                    <td class="px-3 py-2">
+                                        @if($u->unidades_count > 0)
+                                            <span class="badge rounded-pill"
+                                                  style="background:var(--accent);font-size:.72rem;cursor:pointer"
+                                                  data-bs-toggle="popover"
+                                                  data-bs-trigger="focus"
+                                                  data-bs-placement="left"
+                                                  data-bs-html="true"
+                                                  data-bs-title="Unidades de trabajo"
+                                                  data-bs-content="{{ $u->unidades->map(fn($un) => '<span class=\'d-block\'>• ' . e($un->descripcion) . '</span>')->implode('') }}"
+                                                  tabindex="0">
+                                                <i class="fas fa-sitemap me-1"></i>{{ $u->unidades_count }}
+                                            </span>
+                                        @else
+                                            <span class="text-muted" style="font-size:.78rem">—</span>
+                                        @endif
+                                    </td>
                                     <td class="px-3 py-2 text-end">
                                         <button type="button" class="btn btn-sm btn-outline-primary me-1"
                                                 data-bs-toggle="modal" data-bs-target="#editModal{{ $u->id }}"
                                                 style="border-radius:8px;font-size:.78rem"
                                                 title="Editar">
                                             <i class="fas fa-pen"></i>
+                                        </button>
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-warning me-1 btn-reset-pwd"
+                                                data-bs-toggle="modal" data-bs-target="#modalResetPwd"
+                                                data-user-id="{{ $u->id }}"
+                                                data-user-name="{{ $u->name }}"
+                                                style="border-radius:8px;font-size:.78rem"
+                                                title="Resetear contraseña">
+                                            <i class="fas fa-key"></i>
                                         </button>
                                         @if($u->id !== auth()->id())
                                         <form method="POST" action="{{ route('admin.users.destroy', $u) }}" class="d-inline"
@@ -220,3 +247,70 @@
     </div>
 </div>
 @endsection
+
+{{-- ── Modal: Reset contraseña de usuario (admin) ─────────────────────────── --}}
+<div class="modal fade" id="modalResetPwd" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content" style="background:var(--card-bg);border:1px solid var(--card-border);border-radius:16px">
+            <form method="POST" action="" id="formResetPwd">
+                @csrf
+                @method('PUT')
+                <div class="modal-header" style="border-bottom:1px solid var(--card-border);padding:1rem 1.25rem .75rem">
+                    <h5 class="modal-title" style="color:var(--heading-color);font-size:.95rem;font-weight:700">
+                        <i class="fas fa-key me-2" style="color:var(--accent)"></i>Resetear contraseña
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" style="padding:1.25rem">
+                    <p class="small mb-3" style="color:var(--muted-color)">
+                        Estableciendo nueva contraseña para: <strong id="resetPwdUserName">—</strong>
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" style="color:var(--body-color);opacity:.75;text-transform:uppercase;letter-spacing:.4px;font-size:.68rem">Nueva contraseña</label>
+                        <input type="password" name="password" class="form-control" required minlength="8" placeholder="Mínimo 8 caracteres" autocomplete="new-password">
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label small fw-semibold" style="color:var(--body-color);opacity:.75;text-transform:uppercase;letter-spacing:.4px;font-size:.68rem">Confirmar contraseña</label>
+                        <input type="password" name="password_confirmation" class="form-control" required minlength="8" placeholder="Repetir contraseña" autocomplete="new-password">
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top:1px solid var(--card-border);padding:.75rem 1.25rem">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal" style="border-radius:8px">Cancelar</button>
+                    <button type="submit" class="btn btn-sm" style="background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;border-radius:8px;font-weight:600">
+                        <i class="fas fa-save me-1"></i>Guardar contraseña
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@push('scripts')
+<script>
+// Inicializar popovers de unidades
+document.querySelectorAll('[data-bs-toggle="popover"]').forEach(function(el) {
+    new bootstrap.Popover(el);
+});
+
+// Modal reset password: ajustar action dinámicamente
+document.querySelectorAll('.btn-reset-pwd').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        var userId   = this.dataset.userId;
+        var userName = this.dataset.userName;
+        document.getElementById('resetPwdUserName').textContent = userName;
+        document.getElementById('formResetPwd').action = '/admin/users/' + userId + '/reset-password';
+    });
+});
+</script>
+@endpush
+
+@push('scripts')
+<script>
+    // Activar popovers de Bootstrap para mostrar las unidades del usuario
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('[data-bs-toggle="popover"]').forEach(function (el) {
+            new bootstrap.Popover(el, { sanitize: false });
+        });
+    });
+</script>
+@endpush

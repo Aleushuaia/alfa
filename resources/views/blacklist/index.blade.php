@@ -42,6 +42,17 @@
 <div class="row justify-content-center">
     <div class="col-xl-9 col-lg-11">
 
+        {{-- Indicador de unidad activa --}}
+        @auth
+        @php $__ua = app(\App\Services\UnidadActivaService::class)->get(auth()->user()); @endphp
+        @if($__ua)
+        <div class="d-flex align-items-center gap-2 mb-3" style="font-size:.82rem;color:var(--body-color);opacity:.75">
+            <i class="fas fa-sitemap" style="color:var(--accent)"></i>
+            <span>Mostrando datos de: <strong>{{ $__ua->descripcion }}</strong></span>
+        </div>
+        @endif
+        @endauth
+
         <div class="card shadow-sm">
             <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <div>

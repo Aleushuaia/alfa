@@ -318,6 +318,13 @@
                 </div>
             @endif
 
+            @if(config('app.dev_login'))
+            <div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.35);border-radius:10px;padding:.65rem 1rem;margin-bottom:1.25rem;font-size:.82rem;color:#d97706;display:flex;align-items:flex-start;gap:.5rem">
+                <i class="fas fa-triangle-exclamation mt-1 flex-shrink-0"></i>
+                <span><strong>Modo desarrollo activo.</strong> Ingresá con cualquier email registrado. La contraseña no es obligatoria.</span>
+            </div>
+            @endif
+
             <form method="POST" action="{{ route('login.post') }}">
                 @csrf
 
@@ -333,12 +340,18 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="password">Contraseña</label>
+                    <label for="password">
+                        Contraseña
+                        @if(config('app.dev_login'))
+                        <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--login-muted);font-size:.75rem">(opcional en modo dev)</span>
+                        @endif
+                    </label>
                     <div class="input-wrap">
                         <i class="fas fa-key"></i>
                         <input type="password" id="password" name="password"
                                placeholder="••••••••"
-                               required autocomplete="current-password">
+                               @if(!config('app.dev_login')) required @endif
+                               autocomplete="current-password">
                     </div>
                 </div>
 
