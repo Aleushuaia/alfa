@@ -26,16 +26,10 @@
         </a>
         <a href="{{ route('word-anonymizer.index') }}"
            class="nav-link {{ request()->routeIs('word-anonymizer*') ? 'active' : '' }}"
+           target="_blank"
            title=""
-           data-sidebar-tooltip="Anonimizador de Word">
+           data-sidebar-tooltip="Anonimizador">
             <span class="nav-icon"><i class="fas fa-file-word"></i></span>
-            <span>Anonimizador de Word</span>
-        </a>
-        <a href="{{ route('pdf-analyzer.form') }}"
-           class="nav-link {{ request()->routeIs('pdf-analyzer.*') ? 'active' : '' }}"
-           title=""
-           data-sidebar-tooltip="Anonimizador PDF">
-            <span class="nav-icon"><i class="fas fa-file-alt"></i></span>
             <span>Anonimizador</span>
         </a>
 

@@ -37,6 +37,7 @@ class EntityBlacklist extends Model
         'added_by',
         'reason',
         'active',
+        'unidad_id',
     ];
 
     // ── Casts de tipos ────────────────────────────────────────────────────────

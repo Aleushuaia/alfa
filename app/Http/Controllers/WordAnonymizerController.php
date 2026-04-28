@@ -6,7 +6,9 @@ use App\Models\EntityBlacklist;
 use App\Models\EntityWhitelist;
 use App\Services\NlpEntityService;
 use App\Services\OcrExtractorService;
+use App\Services\UnidadActivaService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpWord\IOFactory;
@@ -837,18 +839,30 @@ class WordAnonymizerController extends Controller
             $term          = $entry['term'];
             $entityType    = $entry['entity_type'] ?? null;
             $caseSensitive = (bool) ($entry['case_sensitive'] ?? false);
+            $matchMode     = $entry['match_mode'] ?? 'exact';
 
-            $escapedTerm = preg_quote(htmlspecialchars($term, ENT_QUOTES | ENT_HTML5, 'UTF-8'), '/');
-            $flags       = $caseSensitive ? 'u' : 'iu';
+            $escapedHtmlTerm = htmlspecialchars($term, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $flags           = $caseSensitive ? 'u' : 'iu';
+
+            // Build the inner-content pattern based on match mode
+            if ($matchMode === 'contains') {
+                $innerPattern = '[^<]*' . preg_quote($escapedHtmlTerm, '/') . '[^<]*';
+            } elseif ($matchMode === 'regex') {
+                // Treat term as a raw regex fragment; wrap with non-tag chars
+                $innerPattern = '[^<]*(?:' . $term . ')[^<]*';
+            } else {
+                // exact (default)
+                $innerPattern = '\s*' . preg_quote($escapedHtmlTerm, '/') . '\s*';
+            }
 
             if ($entityType) {
                 $escapedLabel = preg_quote($entityType, '/');
-                $pattern = '/<span[^>]*\bclass="entity[^"]*"[^>]*\bdata-label="' . $escapedLabel . '"[^>]*>\s*' . $escapedTerm . '\s*<\/span>/' . $flags;
+                $pattern = '/<span[^>]*\bclass="entity[^"]*"[^>]*\bdata-label="' . $escapedLabel . '"[^>]*>' . $innerPattern . '<\/span>/' . $flags;
             } else {
-                $pattern = '/<span[^>]*\bclass="entity[^"]*"[^>]*>' . $escapedTerm . '<\/span>/' . $flags;
+                $pattern = '/<span[^>]*\bclass="entity[^"]*"[^>]*>' . $innerPattern . '<\/span>/' . $flags;
             }
 
-            $html = preg_replace($pattern, htmlspecialchars($term, ENT_QUOTES | ENT_HTML5, 'UTF-8'), $html);
+            $html = preg_replace($pattern, $escapedHtmlTerm, $html);
         }
 
         return ['entities' => array_values($entities), 'html' => $html];
@@ -859,16 +873,33 @@ class WordAnonymizerController extends Controller
         $term          = $entry['term'] ?? '';
         $type          = $entry['entity_type'] ?? null;
         $caseSensitive = (bool) ($entry['case_sensitive'] ?? false);
+        $matchMode     = $entry['match_mode'] ?? 'exact';
 
         if ($type !== null && strcasecmp($type, $entityLabel) !== 0) {
             return false;
         }
 
-        if ($caseSensitive) {
-            return $term === trim($entityText);
+        $haystack = trim($entityText);
+        $needle   = trim($term);
+
+        if ($matchMode === 'contains') {
+            if ($caseSensitive) {
+                return str_contains($haystack, $needle);
+            }
+            return str_contains(mb_strtolower($haystack), mb_strtolower($needle));
         }
 
-        return mb_strtolower(trim($term)) === mb_strtolower(trim($entityText));
+        if ($matchMode === 'regex') {
+            $flags   = $caseSensitive ? 'u' : 'iu';
+            $pattern = '/' . $needle . '/' . $flags;
+            return (bool) @preg_match($pattern, $haystack);
+        }
+
+        // Default: exact
+        if ($caseSensitive) {
+            return $needle === $haystack;
+        }
+        return mb_strtolower($needle) === mb_strtolower($haystack);
     }
 
     private function buildGroupedEntities(array $entities): array
@@ -1013,7 +1044,20 @@ class WordAnonymizerController extends Controller
     private function getActiveBlacklist(): array
     {
         try {
+            $unidadId = Auth::check()
+                ? optional(app(UnidadActivaService::class)->get(Auth::user()))->id
+                : null;
+
             return EntityBlacklist::active()
+                ->where(function ($q) use ($unidadId) {
+                    if ($unidadId) {
+                        // Entries for the current unit OR global entries (unidad_id IS NULL)
+                        $q->where('unidad_id', $unidadId)
+                          ->orWhereNull('unidad_id');
+                    } else {
+                        $q->whereNull('unidad_id');
+                    }
+                })
                 ->get(['term', 'entity_type', 'match_mode', 'case_sensitive'])
                 ->toArray();
         } catch (\Exception $e) {
@@ -1025,7 +1069,19 @@ class WordAnonymizerController extends Controller
     private function getActiveWhitelist(): array
     {
         try {
+            $unidadId = Auth::check()
+                ? optional(app(UnidadActivaService::class)->get(Auth::user()))->id
+                : null;
+
             return EntityWhitelist::active()
+                ->where(function ($q) use ($unidadId) {
+                    if ($unidadId) {
+                        $q->where('unidad_id', $unidadId)
+                          ->orWhereNull('unidad_id');
+                    } else {
+                        $q->whereNull('unidad_id');
+                    }
+                })
                 ->get(['term', 'entity_type'])
                 ->toArray();
         } catch (\Exception $e) {

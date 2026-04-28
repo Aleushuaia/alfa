@@ -251,7 +251,19 @@ class PdfAnalyzerController extends Controller
     private function getActiveBlacklist(): array
     {
         try {
+            $unidadId = Auth::check()
+                ? optional(app(UnidadActivaService::class)->get(Auth::user()))->id
+                : null;
+
             return EntityBlacklist::active()
+                ->where(function ($q) use ($unidadId) {
+                    if ($unidadId) {
+                        $q->where('unidad_id', $unidadId)
+                          ->orWhereNull('unidad_id');
+                    } else {
+                        $q->whereNull('unidad_id');
+                    }
+                })
                 ->get(['term', 'entity_type', 'match_mode', 'case_sensitive'])
                 ->toArray();
         } catch (\Exception $e) {
@@ -542,7 +554,19 @@ class PdfAnalyzerController extends Controller
     private function getActiveWhitelist(): array
     {
         try {
+            $unidadId = Auth::check()
+                ? optional(app(UnidadActivaService::class)->get(Auth::user()))->id
+                : null;
+
             return EntityWhitelist::active()
+                ->where(function ($q) use ($unidadId) {
+                    if ($unidadId) {
+                        $q->where('unidad_id', $unidadId)
+                          ->orWhereNull('unidad_id');
+                    } else {
+                        $q->whereNull('unidad_id');
+                    }
+                })
                 ->get(['term', 'entity_type'])
                 ->toArray();
         } catch (\Exception $e) {

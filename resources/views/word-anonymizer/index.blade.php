@@ -163,16 +163,6 @@
 .et-lbl.disabled { opacity: .4; text-decoration: line-through; }
 .leg-dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
 
-/*  STATS BAR  */
-.stats-bar {
-    display: flex; gap: .65rem; flex-wrap: wrap; align-items: center;
-    padding: .2rem .55rem; border-radius: 5px; margin-top: .15rem;
-    background: color-mix(in srgb,#059669 8%,var(--card-bg));
-    border: 1px solid color-mix(in srgb,#059669 22%,transparent);
-    font-size: .69rem; color: #059669;
-}
-.stats-bar span { display: flex; align-items: center; gap: .25rem; }
-
 /*  EDITOR  */
 .wa-editor {
     border: 1.5px solid var(--input-border); border-radius: 8px;
@@ -453,11 +443,6 @@
                         <span class="wc-title">Texto a analizar
                             <span id="source-badge" style="display:none;margin-left:.35rem;font-size:.63rem;font-weight:600;padding:.1rem .38rem;border-radius:10px;vertical-align:middle;background:var(--badge-light-bg);color:var(--muted-color);border:1px solid var(--badge-light-border);"></span>
                         </span>
-                        <div class="stats-bar" id="stats-bar" style="display:none;">
-                            <span id="s-chars"><i class="fas fa-font"></i> </span>
-                            <span id="s-words"><i class="fas fa-align-left"></i> </span>
-                            <span id="s-lines"><i class="fas fa-list"></i> </span>
-                        </div>
                     </div>
                 </div>
                 <div style="display:flex;align-items:center;gap:.3rem;flex-wrap:wrap;flex-shrink:0;">
@@ -598,10 +583,6 @@ const prgPdfUpFill   = $('prg-pdf-up-fill');
 
 const waEmpty     = $('wa-empty');
 const waEditor    = $('wa-editor');
-const statsBar    = $('stats-bar');
-const sChars      = $('s-chars');
-const sWords      = $('s-words');
-const sLines      = $('s-lines');
 const sourceBadge = $('source-badge');
 const btnAnalizar = $('btn-analizar');
 const btnCopy     = $('btn-copy');
@@ -789,7 +770,7 @@ function resetAll(){
     // Keep the editor visible (always shown) — just clear content
     waEmpty.style.display=''; waEditor.style.display='block';
     waEditor.innerHTML=''; waEditor.setAttribute('data-empty','true');
-    statsBar.style.display='none'; enableBtns(false);
+    enableBtns(false);
     dlCard.style.display='none'; doneCard.style.display='none';
     entTbody.innerHTML=''; lastFlash=null; hideTip(); closeCtx();
     setSource('plain', null);
@@ -817,10 +798,6 @@ waForm.addEventListener('submit', async e=>{
         if(!r.ok) throw new Error(d.error??d.message??'Error al procesar el archivo.');
         setSource('word', 'Word');
         showEditorText(d.text);
-        statsBar.style.display='flex';
-        sChars.innerHTML=`<i class="fas fa-font"></i> ${d.chars.toLocaleString()} car.`;
-        sWords.innerHTML=`<i class="fas fa-align-left"></i> ${d.words.toLocaleString()} pal.`;
-        sLines.innerHTML=`<i class="fas fa-list"></i> ${d.lines.toLocaleString()} lín.`;
         toast('Texto extraído correctamente.','s');
     } catch(err){ toast(err.message,'e'); }
     finally{ pgUp.finish(); btnProcesar.disabled=false; btnProcesar.innerHTML='<i class="fas fa-file-export"></i> Procesar Word'; }
@@ -841,10 +818,6 @@ waPdfForm.addEventListener('submit', async e=>{
         if(!r.ok) throw new Error(d.error??d.message??'Error al procesar el PDF.');
         setSource('pdf', 'PDF');
         showEditorText(d.text);
-        statsBar.style.display='flex';
-        sChars.innerHTML=`<i class="fas fa-font"></i> ${d.chars.toLocaleString()} car.`;
-        sWords.innerHTML=`<i class="fas fa-align-left"></i> ${d.words.toLocaleString()} pal.`;
-        sLines.innerHTML=`<i class="fas fa-list"></i> ${d.lines.toLocaleString()} lín.`;
         const mLabel = d.method==='ocr' ? 'Extraído vía OCR.' : 'Extraído vía texto nativo.';
         toast(mLabel, 's');
     } catch(err){ toast(err.message,'e'); }
