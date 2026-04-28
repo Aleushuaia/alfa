@@ -14,6 +14,8 @@ use App\Http\Controllers\TranscripcionController;
 use App\Http\Controllers\ThemeConfigController;
 use App\Http\Controllers\UnidadController;
 use App\Http\Controllers\UserManagementController;
+use App\Http\Controllers\PromptController;
+use App\Http\Controllers\SujetosProcesalesController;
 use App\Http\Controllers\WordAnonymizerController;
 use Illuminate\Support\Facades\Route;
 
@@ -99,6 +101,10 @@ Route::middleware('auth')->group(function () {
     // ── Probar modelo (Ollama LLM) ────────────────────────────────────────
     Route::get('/ollama/test',  [OllamaTestController::class, 'index'])->name('ollama.test');
     Route::post('/ollama/test', [OllamaTestController::class, 'sendMessage'])->name('ollama.send');
+
+    // ── Extracción de Sujetos Procesales ─────────────────────────────────
+    Route::get('/sujetos-procesales',          [SujetosProcesalesController::class, 'index'])->name('sujetos-procesales.index');
+    Route::post('/sujetos-procesales/extraer', [SujetosProcesalesController::class, 'extraer'])->name('sujetos-procesales.extraer');
     // ── Gestión de entidades (colores por usuario) ──────────────────────
     Route::get('/entity-config', [EntityConfigController::class, 'index'])->name('entity-config.index');
     Route::post('/entity-config', [EntityConfigController::class, 'save'])->name('entity-config.save');
@@ -127,5 +133,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/administradores-unidades',                        [AdministradorUnidadController::class, 'index'])->name('administradores-unidades.index');
         Route::post('/administradores-unidades/attach',                [AdministradorUnidadController::class, 'attach'])->name('administradores-unidades.attach');
         Route::delete('/administradores-unidades/{unidad}/{user}',     [AdministradorUnidadController::class, 'detach'])->name('administradores-unidades.detach');
+
+        // ── Gestión de Prompts ───────────────────────────────────────────
+        Route::get('/prompts',             [PromptController::class, 'index'])->name('prompts.index');
+        Route::post('/prompts',            [PromptController::class, 'store'])->name('prompts.store');
+        Route::put('/prompts/{prompt}',    [PromptController::class, 'update'])->name('prompts.update');
+        Route::delete('/prompts/{prompt}', [PromptController::class, 'destroy'])->name('prompts.destroy');
     });
 });

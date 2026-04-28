@@ -55,6 +55,13 @@
             <span class="nav-icon"><i class="fas fa-robot"></i></span>
             <span>Probar modelo</span>
         </a>
+        <a href="{{ route('sujetos-procesales.index') }}"
+           class="nav-link {{ request()->routeIs('sujetos-procesales.*') ? 'active' : '' }}"
+           title=""
+           data-sidebar-tooltip="Extraer sujetos procesales">
+            <span class="nav-icon"><i class="fas fa-users"></i></span>
+            <span>Extraer sujetos procesales</span>
+        </a>
 
         {{-- ── Configuración ── visible para todos los autenticados --}}
         <p class="nav-section-label mt-2">Configuración</p>
@@ -110,6 +117,13 @@
            data-sidebar-tooltip="Administradores de Unidades">
             <span class="nav-icon"><i class="fas fa-user-shield"></i></span>
             <span>Administradores de Unidades</span>
+        </a>
+        <a href="{{ route('admin.prompts.index') }}"
+           class="nav-link {{ request()->routeIs('admin.prompts.*') ? 'active' : '' }}"
+           title=""
+           data-sidebar-tooltip="Gestión de Prompts">
+            <span class="nav-icon"><i class="fas fa-file-code"></i></span>
+            <span>Gestión de Prompts</span>
         </a>
         @endif
 

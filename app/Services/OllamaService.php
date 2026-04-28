@@ -33,13 +33,15 @@ class OllamaService
     /**
      * Envía un prompt al modelo Ollama y retorna el texto de respuesta.
      *
-     * @param  string  $prompt  Texto del usuario (ya saneado).
-     * @return string           Respuesta del modelo.
+     * @param  string   $prompt   Texto del usuario (ya saneado).
+     * @param  int|null $timeout  Timeout en segundos. Usa el configurado en .env si es null.
+     * @return string             Respuesta del modelo.
      * @throws RuntimeException Si el servidor no responde o la respuesta es inválida.
      */
-    public function chat(string $prompt): string
+    public function chat(string $prompt, ?int $timeout = null): string
     {
-        $endpoint = $this->url . '/api/generate';
+        $endpoint       = $this->url . '/api/generate';
+        $effectiveTimeout = $timeout ?? $this->timeout;
 
         $payload = [
             'model'  => $this->model,
@@ -51,10 +53,11 @@ class OllamaService
             'endpoint' => $endpoint,
             'model'    => $this->model,
             'chars'    => strlen($prompt),
+            'timeout'  => $effectiveTimeout,
         ]);
 
         try {
-            $response = Http::timeout($this->timeout)
+            $response = Http::timeout($effectiveTimeout)
                 ->withHeaders(['Content-Type' => 'application/json'])
                 ->post($endpoint, $payload);
         } catch (\Illuminate\Http\Client\ConnectionException $e) {

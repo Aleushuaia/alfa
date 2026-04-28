@@ -11,11 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('unidades', function (Blueprint $table) {
-            $table->id();
-            $table->string('descripcion', 150)->nullable();
+        Schema::create('prompts', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->string('descripcion', 150)->unique();
+            $table->text('contenido');
             $table->timestamps();
-            $table->softDeletes();
         });
     }
 
@@ -24,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('unidades');
+        Schema::dropIfExists('prompts');
     }
 };
