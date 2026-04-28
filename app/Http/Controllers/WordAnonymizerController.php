@@ -44,12 +44,12 @@ class WordAnonymizerController extends Controller
             'word' => [
                 'required',
                 'file',
-                'mimes:doc,docx,dot,dotx,dotm,docm,rtf,odt',
+                'mimes:doc,docx',
                 'max:51200',
             ],
         ], [
             'word.required' => 'Debe seleccionar un archivo Word.',
-            'word.mimes'    => 'Se aceptan archivos Word (.doc, .docx, .odt, .rtf).',
+            'word.mimes'    => 'Solo se aceptan archivos Word (.doc o .docx).',
             'word.max'      => 'El archivo no debe superar los 50 MB.',
         ]);
 
@@ -59,7 +59,9 @@ class WordAnonymizerController extends Controller
         $this->cleanupSessionFiles();
 
         Storage::disk('local')->makeDirectory('temp-word');
-        $tmpPath = $file->store('temp-word', 'local');
+        // Preserve original extension so the correct PhpWord reader can be selected
+        $origExt = strtolower($file->getClientOriginalExtension() ?: 'docx');
+        $tmpPath = $file->storeAs('temp-word', 'wa_' . uniqid() . '.' . $origExt, 'local');
         $absPath = Storage::disk('local')->path($tmpPath);
 
         // Keep file in session — needed later for anonymization
@@ -75,7 +77,7 @@ class WordAnonymizerController extends Controller
                 'size_mb'  => round($file->getSize() / 1048576, 2),
             ]);
 
-            $text  = $this->extractText($absPath);
+            $text  = $this->extractText($absPath, $origExt);
             $chars = strlen($text);
             $words = str_word_count($text);
             $lines = substr_count($text, "\n") + 1;
@@ -354,6 +356,7 @@ class WordAnonymizerController extends Controller
 
         $originalName = session('wa_doc_name', 'documento.docx');
         $baseName     = pathinfo($originalName, PATHINFO_FILENAME);
+        // Always deliver as DOCX regardless of source format (DOC → converted)
         $downloadName = $baseName . '-anonimizado.docx';
 
         return response()->download($absPath, $downloadName, [
@@ -365,9 +368,23 @@ class WordAnonymizerController extends Controller
     //  TEXT EXTRACTION HELPERS
     // ═════════════════════════════════════════════════════════════════════════
 
-    private function extractText(string $path): string
+    /**
+     * Map a file extension to the correct PhpWord reader name.
+     */
+    private function phpWordReaderType(string $ext): string
     {
-        $phpWord = IOFactory::load($path);
+        return match (strtolower($ext)) {
+            'docx'  => 'Word2007',
+            'doc'   => 'MsDoc',
+            default => 'Word2007',
+        };
+    }
+
+    private function extractText(string $path, string $ext = ''): string
+    {
+        $ext     = strtolower($ext ?: pathinfo($path, PATHINFO_EXTENSION));
+        $reader  = IOFactory::createReader($this->phpWordReaderType($ext));
+        $phpWord = $reader->load($path);
         $lines   = [];
 
         foreach ($phpWord->getSections() as $section) {
@@ -688,10 +705,12 @@ class WordAnonymizerController extends Controller
         }
     }
 
-    /** Fallback for RTF/ODT: run-level text replacement via PHPWord */
+    /** Fallback for DOC format: run-level text replacement via PHPWord */
     private function anonymizeViaPHPWord(string $sourcePath, string $outPath, array $replacements): string
     {
-        $phpWord = IOFactory::load($sourcePath);
+        $ext    = strtolower(pathinfo($sourcePath, PATHINFO_EXTENSION));
+        $reader = IOFactory::createReader($this->phpWordReaderType($ext));
+        $phpWord = $reader->load($sourcePath);
 
         foreach ($phpWord->getSections() as $section) {
             foreach ($section->getElements() as $element) {

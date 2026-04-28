@@ -284,7 +284,7 @@
                 <div class="wc-icon wc-icon-blue"><i class="fas fa-file-word"></i></div>
                 <div class="wc-title-stack">
                     <span class="wc-title">Subir documento Word</span>
-                    <span class="wc-sub">Word / ODT / RTF · máx. 50 MB</span>
+                    <span class="wc-sub">Solo .doc y .docx · máx. 50 MB</span>
                 </div>
             </div>
             <div class="wc-body">
@@ -292,13 +292,12 @@
                     @csrf
                     <div class="drop-zone" id="drop-zone">
                         <input type="file" id="word-input" name="word"
-                               accept=".doc,.docx,.dot,.dotx,.dotm,.docm,.odt,.rtf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.oasis.opendocument.text,application/rtf">
+                               accept=".doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
                         <i class="fas fa-file-word dz-icon"></i>
                         <div class="dz-title">Arrastrá o hacé clic</div>
                         <div class="dz-sub">para seleccionar archivo Word</div>
                         <div class="fmt-badges">
                             <span class="fmt-badge">DOCX</span><span class="fmt-badge">DOC</span>
-                            <span class="fmt-badge">ODT</span><span class="fmt-badge">RTF</span>
                         </div>
                     </div>
                     <div class="file-preview" id="file-preview">
@@ -319,6 +318,26 @@
                         <i class="fas fa-file-export"></i> Procesar Word
                     </button>
                 </form>
+            </div>
+        </div>
+
+        {{-- Download WORD (hidden, shown only when source is Word) --}}
+        <div class="wc" id="download-card" style="display:none;">
+            <div class="wc-head">
+                <div class="wc-icon wc-icon-green"><i class="fas fa-file-word"></i></div>
+                <div class="wc-title-stack">
+                    <span class="wc-title">Listo para descargar</span>
+                    <span class="wc-sub">Documento Word anonimizado</span>
+                </div>
+            </div>
+            <div class="wc-body">
+                <p style="font-size:.77rem;color:var(--muted-color);margin-bottom:.65rem;">
+                    <i class="fas fa-circle-check me-1" style="color:#10b981;"></i>
+                    Anonimización completada correctamente.
+                </p>
+                <a href="{{ route('word-anonymizer.download') }}" class="btn-dl-word" target="_blank">
+                    <i class="fas fa-file-arrow-down"></i> Descargar .docx
+                </a>
             </div>
         </div>
 
@@ -401,26 +420,6 @@
             </div>
         </div>
 
-        {{-- Download WORD (hidden, shown only when source is Word) --}}
-        <div class="wc" id="download-card" style="display:none;">
-            <div class="wc-head">
-                <div class="wc-icon wc-icon-green"><i class="fas fa-file-word"></i></div>
-                <div class="wc-title-stack">
-                    <span class="wc-title">Listo para descargar</span>
-                    <span class="wc-sub">Documento Word anonimizado</span>
-                </div>
-            </div>
-            <div class="wc-body">
-                <p style="font-size:.77rem;color:var(--muted-color);margin-bottom:.65rem;">
-                    <i class="fas fa-circle-check me-1" style="color:#10b981;"></i>
-                    Anonimización completada correctamente.
-                </p>
-                <a href="{{ route('word-anonymizer.download') }}" class="btn-dl-word" target="_blank">
-                    <i class="fas fa-file-arrow-down"></i> Descargar .docx
-                </a>
-            </div>
-        </div>
-
         {{-- Completion card for PDF / plain (no Word download) --}}
         <div class="wc" id="done-card" style="display:none;border-color:#10b981;">
             <div class="wc-head">
@@ -462,7 +461,7 @@
                     </div>
                 </div>
                 <div style="display:flex;align-items:center;gap:.3rem;flex-wrap:wrap;flex-shrink:0;">
-                    <button class="btn-hdr btn-hdr-blue"   id="btn-analizar"  disabled><i class="fas fa-magnifying-glass"></i> Analizar</button>
+                    <button class="btn-hdr btn-hdr-blue"   id="btn-analizar"  disabled><i class="fas fa-search"></i> Buscar Entidades</button>
                     <button class="btn-hdr btn-hdr-muted"  id="btn-copy"      disabled><i class="fas fa-copy"></i> Copiar</button>
                     <button class="btn-hdr btn-hdr-muted"  id="btn-dl-txt"    disabled><i class="fas fa-file-arrow-down"></i> .txt</button>
                     <button class="btn-hdr btn-hdr-danger" id="btn-clear"     disabled><i class="fas fa-trash-alt"></i> Limpiar</button>
@@ -502,7 +501,10 @@
                         <span class="wc-sub" id="ent-count">0 entidades</span>
                     </div>
                 </div>
-                <div style="display:flex;align-items:center;gap:.3rem;">
+                <div style="display:flex;align-items:center;gap:.3rem;flex-wrap:wrap;">
+                    <button class="btn-hdr btn-hdr-danger" id="btn-bulk-blacklist" style="display:none;">
+                        <i class="fas fa-ban"></i> Agregar a Blacklist
+                    </button>
                     <div class="prg-wrap" id="prg-anon" style="max-width:150px;">
                         <div class="prg-lbl">Anonimizando</div>
                         <div class="prg-bar"><div class="prg-fill prg-fill-green" id="prg-anon-fill"></div></div>
@@ -517,6 +519,7 @@
                     <table class="table table-sm table-hover align-middle mb-0" style="font-size:.78rem;">
                         <thead class="table-light sticky-top">
                             <tr>
+                                <th style="width:28px;"><input type="checkbox" id="ent-cb-all" title="Seleccionar todas" style="cursor:pointer;"></th>
                                 <th>Texto</th><th>Tipo</th>
                                 <th class="text-center">N</th><th>Etiqueta</th>
                             </tr>
@@ -537,6 +540,18 @@
 
 </div>
 
+{{-- Format-error modal --}}
+<div id="fmt-modal-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.48);align-items:center;justify-content:center;">
+    <div style="background:var(--card-bg,#fff);border-radius:14px;box-shadow:0 8px 40px rgba(0,0,0,.22);max-width:380px;width:90%;padding:2rem 1.8rem;text-align:center;border:1px solid var(--card-border,#e2e8f0);">
+        <div style="width:56px;height:56px;border-radius:50%;background:#fef2f2;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">
+            <i class="fas fa-file-circle-exclamation" style="font-size:1.6rem;color:#dc2626;"></i>
+        </div>
+        <h5 style="font-size:1rem;font-weight:700;color:var(--heading-color,#1e293b);margin-bottom:.4rem;">Formato no soportado</h5>
+        <p style="font-size:.84rem;color:var(--muted-color,#64748b);margin-bottom:.25rem;">El archivo <strong id="fmt-modal-fname" style="color:var(--heading-color,#1e293b);word-break:break-all;"></strong> no puede procesarse.</p>
+        <p style="font-size:.84rem;color:var(--muted-color,#64748b);margin-bottom:1.4rem;">Este anonimizador acepta únicamente archivos <strong>.doc</strong> y <strong>.docx</strong>.</p>
+        <button id="fmt-modal-close" style="background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:none;border-radius:8px;padding:.55rem 1.6rem;font-size:.88rem;font-weight:600;cursor:pointer;transition:opacity .18s;">Entendido</button>
+    </div>
+</div>
 {{-- Floating elements (body-level) --}}
 <div id="wa-tip"></div>
 <div id="wa-ctx"></div>
@@ -552,7 +567,7 @@
 const EC    = @json($entityColors);
 const LMAP  = { PER:'PERSONA',PERSON:'PERSONA',ORG:'ORGANIZACIÓN',LOC:'LUGAR',GPE:'LUGAR',DATE:'FECHA',DNI:'DNI',EMAIL:'EMAIL',PHONE:'TELÉFONO',PATENTE:'PATENTE',MISC:'OTRO' };
 const ORDER = ['PERSONA','ORGANIZACIÓN','LUGAR','FECHA','DNI','EMAIL','TELÉFONO','OTRO'];
-const WEXT  = ['.doc','.docx','.dot','.dotx','.dotm','.docm','.odt','.rtf'];
+const WEXT  = ['.doc','.docx'];
 
 // ── Source tracking: 'word' | 'pdf' | 'plain' ─────────────────────────────
 let currentSource = 'plain';
@@ -608,20 +623,27 @@ const btnDlTxtDone= $('btn-dl-txt-done');
 const tip         = $('wa-tip');
 const ctx         = $('wa-ctx');
 const toasts      = $('wa-toasts');
-const waOuter     = $('wa-outer');
-const waSidebar   = $('wa-sidebar');
-let btnCollapse = null; // will bind dynamically because button lives in layout
 
 let curFile = 'texto-extraido.txt';
 let lastFlash = null;
 let ctxOpen = false;
-let sidebarCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
 
 /*  Utils  */
 function fmtBytes(b){ return b<1048576?(b/1024).toFixed(1)+' KB':(b/1048576).toFixed(2)+' MB'; }
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function csrf(){ return document.querySelector('meta[name="csrf-token"]')?.content??''; }
 function isWord(f){ const n=f.name.toLowerCase(); return WEXT.some(e=>n.endsWith(e)); }
+function showFmtModal(fname){
+    const overlay = document.getElementById('fmt-modal-overlay');
+    document.getElementById('fmt-modal-fname').textContent = fname ?? '';
+    overlay.style.display = 'flex';
+}
+document.addEventListener('DOMContentLoaded', function(){
+    const btn = document.getElementById('fmt-modal-close');
+    const overlay = document.getElementById('fmt-modal-overlay');
+    if(btn) btn.addEventListener('click', ()=>{ overlay.style.display='none'; });
+    if(overlay) overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.style.display='none'; });
+});
 function spanText(s){ return Array.from(s.childNodes).filter(n=>n.nodeType===Node.TEXT_NODE).map(n=>n.textContent).join(''); }
 
 function progress(wEl, fEl){
@@ -646,52 +668,6 @@ function toast(msg, type='i'){
     setTimeout(()=>{ el.style.opacity='0'; el.style.transition='opacity .3s'; setTimeout(()=>el.remove(),320); }, 4800);
 }
 
-/*  Sidebar collapse (GLOBAL)  */
-function initGlobalCollapseState(){
-    const globalSidebar = document.getElementById('sidebar');
-    if(!globalSidebar) return;
-    if(sidebarCollapsed){
-        globalSidebar.classList.add('collapsed');
-    } else {
-        globalSidebar.classList.remove('collapsed');
-    }
-}
-function toggleGlobalCollapse(){
-    const globalSidebar = document.getElementById('sidebar');
-    if(!globalSidebar) return;
-    sidebarCollapsed = !sidebarCollapsed;
-    localStorage.setItem('sidebar-collapsed', sidebarCollapsed);
-    globalSidebar.classList.toggle('collapsed');
-    const btnCollapse = document.getElementById('btn-collapse');
-    if(btnCollapse){
-        if(sidebarCollapsed){
-            btnCollapse.innerHTML = '<i class="fas fa-chevron-right"></i> <span class="collapse-label">Maximizar panel</span>';
-        } else {
-            btnCollapse.innerHTML = '<i class="fas fa-chevron-left"></i> <span class="collapse-label">Minimizar panel</span>';
-        }
-    }
-}
-
-function bindGlobalCollapseBtn(){
-    const b = document.getElementById('btn-collapse');
-    if(b){
-        b.removeEventListener('click', toggleGlobalCollapse);
-        b.addEventListener('click', toggleGlobalCollapse);
-        initGlobalCollapseState();
-    }
-}
-
-// Bind button and initialize state
-bindGlobalCollapseBtn();
-document.addEventListener('DOMContentLoaded', bindGlobalCollapseBtn);
-setTimeout(bindGlobalCollapseBtn, 300);
-
-// Fallback: delegate clicks globally
-document.addEventListener('click', function(e){
-    const el = e.target.closest ? e.target.closest('#btn-collapse') : null;
-    if(el){ toggleGlobalCollapse(); }
-});
-
 /*  Entity type switches  */
 const etCbs = document.querySelectorAll('.et-cb');
 const getTypes = () => Array.from(etCbs).filter(c=>c.checked).map(c=>c.dataset.entityType);
@@ -707,7 +683,7 @@ $('btn-none').addEventListener('click',e=>{ e.preventDefault(); etCbs.forEach(cb
 
 /*  File input & drag-drop — WORD  */
 function setPreview(file){
-    curFile = file.name.replace(/\.(doc|docx|dot|dotx|dotm|docm|odt|rtf)$/i,'') + '.txt';
+    curFile = file.name.replace(/\.(doc|docx)$/i,'') + '.txt';
     fpName.textContent = file.name; fpSize.textContent = fmtBytes(file.size);
     filePreview.classList.add('show'); btnProcesar.disabled = false;
     resetAll();
@@ -723,7 +699,7 @@ dropZone.addEventListener('dragover',e=>{ e.preventDefault(); dropZone.classList
 dropZone.addEventListener('drop',e=>{
     e.preventDefault(); dropZone.classList.remove('drag-over');
     const file=e.dataTransfer?.files[0]; if(!file) return;
-    if(!isWord(file)){ toast('Solo se aceptan archivos Word (.docx, .doc, .odt, .rtf)','e'); return; }
+    if(!isWord(file)){ showFmtModal(file.name); return; }
     const dt=new DataTransfer(); dt.items.add(file); wordInput.files=dt.files;
     setPreview(file);
 });
@@ -829,7 +805,7 @@ function showEntityPanel(grouped){
 waForm.addEventListener('submit', async e=>{
     e.preventDefault();
     if(!wordInput.files[0]){ toast('Seleccioná un archivo Word.','e'); return; }
-    if(!isWord(wordInput.files[0])){ toast('Solo se aceptan archivos Word.','e'); return; }
+    if(!isWord(wordInput.files[0])){ showFmtModal(wordInput.files[0].name); return; }
 
     btnProcesar.disabled=true; btnProcesar.innerHTML='<i class="fas fa-spinner fa-spin"></i> Procesando';
     pgUp.start(); resetAll();
@@ -905,7 +881,7 @@ btnAnalizar.addEventListener('click', async()=>{
     if(!text||text.length<10){ toast('Ingresá al menos 10 caracteres.','e'); return; }
     const sel=getTypes(); if(!sel.length){ toast('Seleccioná al menos un tipo.','e'); return; }
 
-    btnAnalizar.disabled=true; btnAnalizar.innerHTML='<i class="fas fa-spinner fa-spin"></i> Analizando';
+    btnAnalizar.disabled=true; btnAnalizar.innerHTML='<i class="fas fa-spinner fa-spin"></i> Buscando';
     pgAn.start();
     waEntCard.style.display='none'; waMain.classList.remove('split'); dlCard.style.display='none'; lastFlash=null;
 
@@ -923,7 +899,7 @@ btnAnalizar.addEventListener('click', async()=>{
         if(!grouped.length){ toast('No se detectaron entidades.','i'); }
         else{ showEntityPanel(grouped); toast(`${grouped.length} entidad/es detectadas.`,'s'); }
     } catch(err){ toast(err.message,'e'); }
-    finally{ pgAn.finish(); btnAnalizar.disabled=false; btnAnalizar.innerHTML='<i class="fas fa-magnifying-glass"></i> Analizar'; }
+    finally{ pgAn.finish(); btnAnalizar.disabled=false; btnAnalizar.innerHTML='<i class="fas fa-search"></i> Buscar Entidades'; }
 });
 
 /*  Entity table  */
@@ -942,6 +918,7 @@ function renderTable(grouped){
         cnts[dl]=(cnts[dl]||0)+1;
         const vj=esc(JSON.stringify(item.variants||[item.text]));
         html+=`<tr class="entity-row" data-entity-texts="${vj}" data-label="${esc(item.label)}" style="cursor:pointer;">
+          <td class="py-1" style="width:28px;"><input type="checkbox" class="ent-row-cb" style="cursor:pointer;"></td>
           <td class="fw-medium py-1"><span class="ej-link" style="cursor:pointer;">${esc(item.text)}</span></td>
           <td class="py-1"><span class="badge rounded-pill" style="background:${col};color:#333;font-size:.67rem;">${esc(dl)}</span></td>
           <td class="text-center py-1"><span class="badge bg-secondary">${item.count}</span></td>
@@ -951,6 +928,65 @@ function renderTable(grouped){
     entTbody.innerHTML=html;
     bindRowEvents();
 }
+
+/*  Bulk Blacklist  */
+const btnBulkBl = $('btn-bulk-blacklist');
+const entCbAll  = $('ent-cb-all');
+
+function updateBulkBlBtn(){
+    const checked = document.querySelectorAll('#ent-tbody .ent-row-cb:checked');
+    const all     = document.querySelectorAll('#ent-tbody .ent-row-cb');
+    if(btnBulkBl) btnBulkBl.style.display = checked.length > 0 ? 'inline-flex' : 'none';
+    if(entCbAll){
+        entCbAll.indeterminate = checked.length > 0 && checked.length < all.length;
+        entCbAll.checked = all.length > 0 && checked.length === all.length;
+    }
+}
+
+if(entCbAll) entCbAll.addEventListener('change', ()=>{
+    document.querySelectorAll('#ent-tbody .ent-row-cb').forEach(cb => cb.checked = entCbAll.checked);
+    updateBulkBlBtn();
+});
+
+entTbody.addEventListener('change', e=>{
+    if(e.target.classList.contains('ent-row-cb')) updateBulkBlBtn();
+});
+
+if(btnBulkBl) btnBulkBl.addEventListener('click', async ()=>{
+    const checkedCbs = Array.from(document.querySelectorAll('#ent-tbody .ent-row-cb:checked'));
+    if(!checkedCbs.length) return;
+    const rows = checkedCbs.map(cb => cb.closest('.entity-row')).filter(Boolean);
+
+    btnBulkBl.disabled = true;
+    btnBulkBl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando';
+
+    let added = 0, errors = 0;
+    for(const row of rows){
+        let variants = [];
+        try{ variants = JSON.parse(row.dataset.entityTexts||'[]').map(x=>(x||'').trim()).filter(Boolean); }catch{}
+        const eText  = variants[0] || row.querySelector('.ej-link')?.textContent.trim() || '';
+        const eLabel = row.dataset.label || '';
+        if(!eText){ errors++; continue; }
+        try{
+            const r = await apiFetch('{{ route("pdf-analyzer.add-blacklist") }}', {term:eText, entity_type:eLabel||null});
+            const d = await r.json();
+            if(!r.ok || !d.success) throw new Error(d.message||'Error');
+            waEditor.querySelectorAll('.entity').forEach(s=>{
+                if(variants.includes(spanText(s).trim()) && (s.dataset.label||'')===eLabel)
+                    s.replaceWith(document.createTextNode(spanText(s)));
+            });
+            removeFromTable(eText, eLabel);
+            added++;
+        } catch(err){ errors++; }
+    }
+
+    if(added)   toast(`${added} entidad/es agregadas a la Blacklist.`, 's');
+    if(errors)  toast(`${errors} entidad/es no pudieron agregarse.`, 'e');
+
+    btnBulkBl.disabled = false;
+    btnBulkBl.innerHTML = '<i class="fas fa-ban"></i> Agregar a Blacklist';
+    updateBulkBlBtn();
+});
 
 /*  Navigation helpers  */
 function findSpans(keys){
@@ -987,8 +1023,9 @@ function flash(span,variants){
 /*  Table row double-click  */
 function bindRowEvents(){
     document.querySelectorAll('.entity-row').forEach(row=>{
+        row.querySelector('.ent-row-cb')?.addEventListener('click', e => e.stopPropagation());
         row.addEventListener('dblclick',e=>{
-            if(e.target.closest('.ent-lbl-in')) return;
+            if(e.target.closest('.ent-lbl-in')||e.target.closest('.ent-row-cb')) return;
             let variants=[];
             try{ variants=JSON.parse(row.dataset.entityTexts||'[]'); } catch{ variants=[row.querySelector('.ej-link')?.textContent.trim()||'']; }
             const spans=findSpans(variants);
@@ -1177,6 +1214,11 @@ btnAnonimizar.addEventListener('click', async()=>{
         await new Promise(r=>setTimeout(r,28));
         row.style.background='var(--table-hover-bg)'; setTimeout(()=>{ row.style.background=''; },400);
     }
+
+    // Final cleanup: strip any remaining entity spans so no colored backgrounds remain
+    waEditor.querySelectorAll('.entity').forEach(s => {
+        s.replaceWith(document.createTextNode(spanText(s)));
+    });
 
     try{
         const r=await fetch('{{ route("word-anonymizer.anonymize") }}',{
