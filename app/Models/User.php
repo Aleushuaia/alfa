@@ -67,4 +67,18 @@ class User extends Authenticatable
             ->using(AdministradorUnidad::class)
             ->withTimestamps();
     }
+
+    /**
+     * Todas las unidades accesibles: como miembro (user_unidad)
+     * O como administrador (administradores_unidades).
+     * Devuelve una Collection de Unidad ordenada alfabéticamente.
+     */
+    public function allAccessibleUnidades(): \Illuminate\Database\Eloquent\Collection
+    {
+        $memberIds = $this->unidades()->pluck('unidades.id');
+        $adminIds  = $this->unidadesAdministradas()->pluck('unidades.id');
+        $ids       = $memberIds->merge($adminIds)->unique();
+
+        return Unidad::whereIn('id', $ids)->orderBy('descripcion')->get();
+    }
 }

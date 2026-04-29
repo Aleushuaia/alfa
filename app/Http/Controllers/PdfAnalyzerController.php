@@ -153,6 +153,7 @@ class PdfAnalyzerController extends Controller
 
         $term       = trim($request->input('term'));
         $entityType = $request->input('entity_type') ?: null; // null = aplica a todos los tipos
+        $userId     = Auth::id();
         $unidadId   = Auth::check()
             ? optional(app(UnidadActivaService::class)->get(Auth::user()))->id
             : null;
@@ -177,6 +178,12 @@ class PdfAnalyzerController extends Controller
                 // Ya existe: asegurarse de que esté activo
                 if (!$entry->active) {
                     $entry->update(['active' => true]);
+                    \Log::info('Blacklist: término reactivado', [
+                        'term'        => $term,
+                        'entity_type' => $entityType,
+                        'unidad_id'   => $unidadId,
+                        'user_id'     => $userId,
+                    ]);
                 }
             } else {
                 // 3. Crear nuevo registro en la blacklist
@@ -190,6 +197,12 @@ class PdfAnalyzerController extends Controller
                     'active'         => true,
                     'unidad_id'      => $unidadId,
                 ]);
+                \Log::info('Blacklist: término creado', [
+                    'term'        => $term,
+                    'entity_type' => $entityType,
+                    'unidad_id'   => $unidadId,
+                    'user_id'     => $userId,
+                ]);
             }
 
             return response()->json([
@@ -197,9 +210,49 @@ class PdfAnalyzerController extends Controller
                 'message' => "Término \"$term\" agregado a la lista negra. No aparecerá en futuros análisis.",
             ]);
 
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Violación de constraint única (PG error 23505): el par (term, entity_type)
+            // ya existe en la blacklist (posiblemente con distinto unidad_id).
+            // En este caso no es un error real — el término ya está bloqueado.
+            if (str_contains($e->getMessage(), '23505')) {
+                \Log::warning('Blacklist: violación de unicidad — término ya existe en otra unidad', [
+                    'term'        => $term,
+                    'entity_type' => $entityType,
+                    'unidad_id'   => $unidadId,
+                    'user_id'     => $userId,
+                    'sqlerror'    => $e->getMessage(),
+                ]);
+                return response()->json([
+                    'success' => true,
+                    'message' => "Término \"$term\" ya existe en la lista negra.",
+                ]);
+            }
+
+            \Log::error('Blacklist: error de base de datos al agregar término', [
+                'term'        => $term,
+                'entity_type' => $entityType,
+                'unidad_id'   => $unidadId,
+                'user_id'     => $userId,
+                'exception'   => get_class($e),
+                'message'     => $e->getMessage(),
+                'sqlerror'    => $e->getPrevious()?->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error de base de datos al guardar en la lista negra. Intente nuevamente.',
+            ], 500);
+
         } catch (\Exception $e) {
-            // Registrar el error y devolver respuesta limpia al cliente
-            \Log::error('Error al agregar a blacklist: ' . $e->getMessage());
+            \Log::error('Blacklist: error inesperado al agregar término', [
+                'term'        => $term,
+                'entity_type' => $entityType,
+                'unidad_id'   => $unidadId,
+                'user_id'     => $userId,
+                'exception'   => get_class($e),
+                'message'     => $e->getMessage(),
+                'file'        => $e->getFile() . ':' . $e->getLine(),
+            ]);
 
             return response()->json([
                 'success' => false,
@@ -258,8 +311,7 @@ class PdfAnalyzerController extends Controller
             return EntityBlacklist::active()
                 ->where(function ($q) use ($unidadId) {
                     if ($unidadId) {
-                        $q->where('unidad_id', $unidadId)
-                          ->orWhereNull('unidad_id');
+                        $q->where('unidad_id', $unidadId);
                     } else {
                         $q->whereNull('unidad_id');
                     }
@@ -516,14 +568,15 @@ class PdfAnalyzerController extends Controller
                     fn($q) => $q->where('unidad_id', $unidadId),
                     fn($q) => $q->whereNull('unidad_id')
                 )
-                ->orderBy('created_at', 'desc')
+                ->orderBy('term', 'asc')
                 ->get();
         } catch (\Exception $e) {
             \Log::error('Error al cargar whitelist: ' . $e->getMessage());
             $entries = collect();
         }
 
-        return view('whitelist.index', compact('entries'));
+        $entityColors = $this->getUserEntityColors();
+        return view('whitelist.index', compact('entries', 'entityColors'));
     }
 
     // ───────────────────────────────────────────────────────────────────────────────
@@ -561,8 +614,7 @@ class PdfAnalyzerController extends Controller
             return EntityWhitelist::active()
                 ->where(function ($q) use ($unidadId) {
                     if ($unidadId) {
-                        $q->where('unidad_id', $unidadId)
-                          ->orWhereNull('unidad_id');
+                        $q->where('unidad_id', $unidadId);
                     } else {
                         $q->whereNull('unidad_id');
                     }
@@ -692,14 +744,15 @@ class PdfAnalyzerController extends Controller
                     fn($q) => $q->where('unidad_id', $unidadId),
                     fn($q) => $q->whereNull('unidad_id')
                 )
-                ->orderBy('created_at', 'desc')
+                ->orderBy('term', 'asc')
                 ->get();
         } catch (\Exception $e) {
             \Log::error('Error al cargar blacklist: ' . $e->getMessage());
             $entries = collect();
         }
 
-        return view('blacklist.index', compact('entries'));
+        $entityColors = $this->getUserEntityColors();
+        return view('blacklist.index', compact('entries', 'entityColors'));
     }
 
     // ─────────────────────────────────────────────────────────────────────────

@@ -1,8 +1,8 @@
 @extends('layouts.dashboard')
 
-@section('title', 'Gestión de entidades — Alfa')
+@section('title', 'Colores de Entidades — Alfa')
 @section('page-title', 'Configuración de colores por tipo de entidad')
-@section('breadcrumb', 'Gestión de entidades')
+@section('breadcrumb', 'Colores de Entidades')
 
 @push('styles')
 <style>

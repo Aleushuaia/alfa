@@ -76,9 +76,9 @@
         <a href="{{ route('entity-config.index') }}"
            class="nav-link {{ request()->routeIs('entity-config.*') ? 'active' : '' }}"
            title=""
-           data-sidebar-tooltip="Gestión de entidades">
+           data-sidebar-tooltip="Colores de Entidades">
             <span class="nav-icon"><i class="fas fa-palette"></i></span>
-            <span>Gestión de entidades</span>
+            <span>Colores de Entidades</span>
         </a>
         <a href="{{ route('theme-config.index') }}"
            class="nav-link {{ request()->routeIs('theme-config.*') ? 'active' : '' }}"

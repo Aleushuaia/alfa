@@ -61,7 +61,7 @@
     @php
         $__authUser      = auth()->user();
         $__unidadActiva  = app(\App\Services\UnidadActivaService::class)->get($__authUser);
-        $__misUnidades   = $__authUser->unidades()->orderBy('descripcion')->get();
+        $__misUnidades   = $__authUser->allAccessibleUnidades();
     @endphp
 
     @if($__unidadActiva)

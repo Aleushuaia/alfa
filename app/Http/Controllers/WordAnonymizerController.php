@@ -1051,9 +1051,7 @@ class WordAnonymizerController extends Controller
             return EntityBlacklist::active()
                 ->where(function ($q) use ($unidadId) {
                     if ($unidadId) {
-                        // Entries for the current unit OR global entries (unidad_id IS NULL)
-                        $q->where('unidad_id', $unidadId)
-                          ->orWhereNull('unidad_id');
+                        $q->where('unidad_id', $unidadId);
                     } else {
                         $q->whereNull('unidad_id');
                     }
@@ -1076,8 +1074,7 @@ class WordAnonymizerController extends Controller
             return EntityWhitelist::active()
                 ->where(function ($q) use ($unidadId) {
                     if ($unidadId) {
-                        $q->where('unidad_id', $unidadId)
-                          ->orWhereNull('unidad_id');
+                        $q->where('unidad_id', $unidadId);
                     } else {
                         $q->whereNull('unidad_id');
                     }

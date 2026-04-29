@@ -32,6 +32,7 @@
     }
     .au-admin-badge .btn-remove:hover { opacity: 1; }
     .au-unidad-row:hover { background: var(--badge-light-bg); }
+    .au-unidad-row.au-hidden { display: none; }
     #au-toast-wrap {
         position: fixed;
         bottom: 1.5rem;
@@ -41,6 +42,20 @@
         flex-direction: column;
         gap: .5rem;
     }
+    /* Filtros */
+    #au-filter-panel {
+        background: rgba(0,0,0,.025);
+        border-bottom: 1px solid var(--card-border);
+        padding: .75rem 1.25rem;
+    }
+    #au-no-results {
+        text-align: center;
+        padding: 2.5rem 1rem;
+        color: var(--muted-color);
+        display: none;
+    }
+    #au-no-results i { font-size: 2rem; display: block; margin-bottom: .5rem; }
+    .filter-result-info { font-size: .8rem; color: var(--muted-color); }
 </style>
 @endpush
 
@@ -62,12 +77,46 @@
                         <i class="fas fa-user-shield me-2" style="color:var(--accent)"></i>Asignación de administradores por unidad
                     </h5>
                     <p class="small mb-0 mt-1" style="color:var(--muted-color)">
-                        Asigná uno o más administradores a cada unidad de trabajo. Tendrán acceso a gestionar los usuarios de esa unidad.
+                        Asigná uno o más administradores a cada unidad de trabajo. Tendrán acceso a gestionar los usuarios de esa unidad y a trabajar en ella.
                     </p>
                 </div>
                 <span class="badge" style="background:var(--accent);font-size:.75rem;padding:.3rem .75rem;border-radius:20px">
                     {{ $unidades->count() }} unidades
                 </span>
+            </div>
+
+            {{-- ── Panel de filtros ──────────────────────────────────────────── --}}
+            <div id="au-filter-panel">
+                <div class="row g-2 align-items-end">
+                    <div class="col-12 col-sm-5 col-md-4">
+                        <label class="form-label form-label-sm mb-1 fw-medium" style="color:var(--body-color);font-size:.78rem;">
+                            <i class="fas fa-search me-1" style="color:var(--muted-color)"></i>Unidad de trabajo
+                        </label>
+                        <div class="input-group input-group-sm">
+                            <input type="text" class="form-control" id="au-filter-unidad"
+                                   placeholder="Buscar por nombre…" autocomplete="off"
+                                   style="border-color:var(--input-border);background:var(--input-bg);color:var(--input-color)">
+                            <button class="btn btn-outline-secondary" id="au-clear-unidad" title="Limpiar">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-5 col-md-4">
+                        <label class="form-label form-label-sm mb-1 fw-medium" style="color:var(--body-color);font-size:.78rem;">
+                            <i class="fas fa-user-shield me-1" style="color:var(--muted-color)"></i>Administrador asignado
+                        </label>
+                        <select class="form-select form-select-sm" id="au-filter-admin"
+                                style="border-color:var(--input-border);background:var(--input-bg);color:var(--input-color)">
+                            <option value="">Todos los usuarios</option>
+                            @foreach($users as $u)
+                            <option value="{{ $u->id }}">{{ $u->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-4 d-flex align-items-end pb-1">
+                        <span class="filter-result-info" id="au-result-info"></span>
+                    </div>
+                </div>
             </div>
 
             <div class="table-responsive">
@@ -81,7 +130,10 @@
                     </thead>
                     <tbody>
                         @foreach($unidades as $unidad)
-                        <tr class="au-unidad-row" data-unidad-id="{{ $unidad->id }}">
+                        <tr class="au-unidad-row"
+                            data-unidad-id="{{ $unidad->id }}"
+                            data-unidad-name="{{ strtolower($unidad->descripcion) }}"
+                            data-admin-ids="{{ $unidad->administradores->pluck('id')->join(',') }}">
                             <td class="px-4 py-3">
                                 <div class="fw-semibold" style="color:var(--heading-color)">{{ $unidad->descripcion }}</div>
                                 <div class="small" style="color:var(--muted-color)">#{{ $unidad->id }}</div>
@@ -125,6 +177,12 @@
                             </td>
                         </tr>
                         @endforeach
+                        <tr id="au-no-results-row" style="display:none">
+                            <td colspan="3" id="au-no-results">
+                                <i class="fas fa-search-minus"></i>
+                                Sin resultados para los filtros aplicados.
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -150,6 +208,62 @@
         el.innerHTML = msg + '<button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert"></button>';
         wrap.appendChild(el);
         setTimeout(() => { try { bootstrap.Alert.getOrCreateInstance(el).close(); } catch(e){} }, 4000);
+    }
+
+    // ── Filtros ─────────────────────────────────────────────────────────────
+    const filterUnidad = document.getElementById('au-filter-unidad');
+    const filterAdmin  = document.getElementById('au-filter-admin');
+    const clearUnidad  = document.getElementById('au-clear-unidad');
+    const resultInfo   = document.getElementById('au-result-info');
+    const noResultsRow = document.getElementById('au-no-results-row');
+    const allRows      = Array.from(document.querySelectorAll('.au-unidad-row'));
+
+    function applyFilters() {
+        const term  = (filterUnidad.value || '').toLowerCase().trim();
+        const admin = filterAdmin.value;
+        let visible = 0;
+        allRows.forEach(function (row) {
+            const nameMatch  = !term  || row.dataset.unidadName.includes(term);
+            const adminIds   = row.dataset.adminIds ? row.dataset.adminIds.split(',') : [];
+            const adminMatch = !admin || adminIds.includes(admin);
+            if (nameMatch && adminMatch) {
+                row.classList.remove('au-hidden');
+                visible++;
+            } else {
+                row.classList.add('au-hidden');
+            }
+        });
+        noResultsRow.style.display = visible === 0 ? '' : 'none';
+        document.getElementById('au-no-results').style.display = visible === 0 ? 'block' : 'none';
+        resultInfo.textContent = (term || admin)
+            ? `Mostrando ${visible} de ${allRows.length} unidades`
+            : '';
+    }
+
+    filterUnidad.addEventListener('input',  applyFilters);
+    filterAdmin.addEventListener('change', applyFilters);
+    clearUnidad.addEventListener('click', function () {
+        filterUnidad.value = '';
+        applyFilters();
+        filterUnidad.focus();
+    });
+
+    // Helper: actualizar data-admin-ids de la fila
+    function getRow(unidadId) {
+        return document.querySelector(`.au-unidad-row[data-unidad-id="${unidadId}"]`);
+    }
+    function addAdminIdToRow(unidadId, userId) {
+        const row = getRow(unidadId);
+        if (!row) return;
+        const ids = row.dataset.adminIds ? row.dataset.adminIds.split(',').filter(Boolean) : [];
+        if (!ids.includes(String(userId))) ids.push(String(userId));
+        row.dataset.adminIds = ids.join(',');
+    }
+    function removeAdminIdFromRow(unidadId, userId) {
+        const row = getRow(unidadId);
+        if (!row) return;
+        const ids = row.dataset.adminIds ? row.dataset.adminIds.split(',').filter(Boolean) : [];
+        row.dataset.adminIds = ids.filter(id => id !== String(userId)).join(',');
     }
 
     // ── Asignar administrador ───────────────────────────────────────────────
@@ -192,6 +306,7 @@
                     </button>`;
                 wrap.appendChild(badge);
 
+                addAdminIdToRow(unidadId, userId);
                 sel.value = '';
                 toast(`<strong>${userName.trim()}</strong> asignado como administrador.`, 'success');
             } catch (e) {
@@ -236,6 +351,7 @@
                 wrap.appendChild(empty);
             }
 
+            removeAdminIdFromRow(unidadId, userId);
             toast(`<strong>${userName}</strong> removido como administrador.`, 'success');
         } catch (e) {
             toast('Error de conexión. Intentá nuevamente.', 'danger');
@@ -245,3 +361,4 @@
 })();
 </script>
 @endpush
+

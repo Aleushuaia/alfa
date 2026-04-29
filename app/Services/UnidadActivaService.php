@@ -24,21 +24,23 @@ class UnidadActivaService
      *  1. La que está guardada en sesión (si sigue siendo válida para el usuario).
      *  2. La primera unidad del usuario ordenada alfabéticamente.
      *  3. Null si no tiene unidades asignadas.
+     *
+     * Considera tanto unidades de las que es miembro como las que administra.
      */
     public function get(User $user): ?Unidad
     {
-        $sessionId = Session::get(self::SESSION_KEY);
+        $accesibles = $user->allAccessibleUnidades();
 
+        $sessionId = Session::get(self::SESSION_KEY);
         if ($sessionId) {
-            // Verificar que el usuario siga perteneciendo a esa unidad
-            $unidad = $user->unidades()->where('unidades.id', $sessionId)->first();
+            $unidad = $accesibles->firstWhere('id', (int) $sessionId);
             if ($unidad) {
                 return $unidad;
             }
         }
 
         // Fallback: primera unidad alfabética
-        $unidad = $user->unidades()->orderBy('descripcion')->first();
+        $unidad = $accesibles->first();
         if ($unidad) {
             Session::put(self::SESSION_KEY, $unidad->id);
         }
@@ -48,13 +50,13 @@ class UnidadActivaService
 
     /**
      * Establece la unidad activa en sesión, validando que el usuario
-     * pertenezca a esa unidad.
+     * pertenezca a esa unidad (como miembro o como administrador).
      *
-     * @return bool  true si se cambió, false si el usuario no pertenece a ella.
+     * @return bool  true si se cambió, false si el usuario no tiene acceso.
      */
     public function set(User $user, int $unidadId): bool
     {
-        $unidad = $user->unidades()->where('unidades.id', $unidadId)->first();
+        $unidad = $user->allAccessibleUnidades()->firstWhere('id', $unidadId);
 
         if (!$unidad) {
             return false;

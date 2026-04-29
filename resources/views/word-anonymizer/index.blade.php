@@ -933,28 +933,47 @@ if(btnBulkBl) btnBulkBl.addEventListener('click', async ()=>{
     btnBulkBl.disabled = true;
     btnBulkBl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando';
 
-    let added = 0, errors = 0;
+    let added = 0;
+    const failedTerms = [];
     for(const row of rows){
         let variants = [];
         try{ variants = JSON.parse(row.dataset.entityTexts||'[]').map(x=>(x||'').trim()).filter(Boolean); }catch{}
         const eText  = variants[0] || row.querySelector('.ej-link')?.textContent.trim() || '';
         const eLabel = row.dataset.label || '';
-        if(!eText){ errors++; continue; }
+        if(!eText){ failedTerms.push({ term:'(vacío)', reason:'Texto de entidad vacío' }); continue; }
         try{
             const r = await apiFetch('{{ route("pdf-analyzer.add-blacklist") }}', {term:eText, entity_type:eLabel||null});
-            const d = await r.json();
-            if(!r.ok || !d.success) throw new Error(d.message||'Error');
+            let d = null;
+            try { d = await r.json(); } catch(parseErr) {
+                console.error('[Blacklist bulk] Respuesta no-JSON del servidor', r.status, eText);
+                failedTerms.push({ term: eText, reason: `Error del servidor (HTTP ${r.status})` });
+                continue;
+            }
+            if(!r.ok || !d.success){
+                const reason = d?.message || d?.errors ? Object.values(d?.errors||{})[0]?.[0] : null;
+                console.warn('[Blacklist bulk] Fallo al agregar:', eText, reason || r.status);
+                failedTerms.push({ term: eText, reason: reason || `HTTP ${r.status}` });
+                continue;
+            }
             waEditor.querySelectorAll('.entity').forEach(s=>{
                 if(variants.includes(spanText(s).trim()) && (s.dataset.label||'')===eLabel)
                     s.replaceWith(document.createTextNode(spanText(s)));
             });
             removeFromTable(eText, eLabel);
             added++;
-        } catch(err){ errors++; }
+        } catch(err){
+            console.error('[Blacklist bulk] Excepción al agregar:', eText, err);
+            failedTerms.push({ term: eText, reason: err.message || 'Error de red' });
+        }
     }
 
-    if(added)   toast(`${added} entidad/es agregadas a la Blacklist.`, 's');
-    if(errors)  toast(`${errors} entidad/es no pudieron agregarse.`, 'e');
+    if(added)             toast(`${added} entidad/es agregadas a la Blacklist.`, 's');
+    if(failedTerms.length){
+        const names = failedTerms.map(f => `"${f.term}"`).join(', ');
+        const reason = failedTerms.length === 1 ? ` — ${failedTerms[0].reason}` : '';
+        toast(`${failedTerms.length} entidad/es no pudieron agregarse: ${names}${reason}`, 'e');
+        console.error('[Blacklist bulk] Fallos detallados:', failedTerms);
+    }
 
     btnBulkBl.disabled = false;
     btnBulkBl.innerHTML = '<i class="fas fa-ban"></i> Agregar a Blacklist';
@@ -1012,7 +1031,10 @@ function bindRowEvents(){
 /*  Editor click: cycle occurrences  */
 waEditor.addEventListener('click',e=>{
     const span=e.target.closest('.entity'); if(!span) return;
-    const v=variantsForSpan(span); const spans=findSpans(v); const idx=spans.indexOf(span);
+    const v=variantsForSpan(span); const spans=findSpans(v);
+    // Si es la única ocurrencia, no hacer nada (evita desplazamiento innecesario)
+    if(spans.length <= 1){ e.stopPropagation(); return; }
+    const idx=spans.indexOf(span);
     const next = idx>=0 && idx<spans.length-1 ? spans[idx+1] : spans[0];
     if(next){ scrollTo(next); flash(next,v); }
     e.stopPropagation();
