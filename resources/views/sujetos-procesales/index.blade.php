@@ -1,8 +1,8 @@
 @extends('layouts.dashboard')
 
-@section('title', 'Extraer Sujetos Procesales — ' . config('app.name', 'Alfa'))
-@section('page-title', 'Extraer Sujetos Procesales')
-@section('breadcrumb', 'Sujetos Procesales')
+@section('title', 'Extracción con IA — ' . config('app.name', 'Alfa'))
+@section('page-title', 'Extracción con IA')
+@section('breadcrumb', 'Extracción con IA')
 
 @push('styles')
 <style>
@@ -135,6 +135,35 @@
     resize: vertical;
     line-height: 1.65;
 }
+
+/* ── PANEL DE STATS ──────────────────────────────────────────────────────── */
+.sp-stats {
+    display: none;
+    margin-top: .65rem;
+    background: color-mix(in srgb,#059669 7%,var(--card-bg));
+    border: 1px solid color-mix(in srgb,#059669 25%,transparent);
+    border-radius: 8px;
+    padding: .55rem .75rem;
+    font-size: .75rem;
+    color: var(--body-color);
+}
+.sp-stats.show { display: block; }
+.sp-stats-title {
+    font-weight: 700;
+    font-size: .7rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: #059669;
+    margin-bottom: .35rem;
+}
+.sp-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .25rem .85rem;
+}
+.sp-stats-item   { display: flex; flex-direction: column; gap: .05rem; }
+.sp-stats-label  { font-size: .67rem; color: var(--muted-color); }
+.sp-stats-value  { font-weight: 700; font-size: .82rem; color: var(--heading-color); }
 </style>
 @endpush
 
@@ -231,6 +260,25 @@
                     <i class="fas fa-circle-exclamation me-1"></i><span id="spErrorMsg"></span>
                 </div>
 
+                {{-- Panel de estadísticas del modelo --}}
+                <div class="sp-stats" id="spStats">
+                    <div class="sp-stats-title"><i class="fas fa-chart-bar me-1"></i>Estadísticas del modelo</div>
+                    <div class="sp-stats-grid">
+                        <div class="sp-stats-item">
+                            <span class="sp-stats-label">Texto enviado</span>
+                            <span class="sp-stats-value" id="statChars">—</span>
+                        </div>
+                        <div class="sp-stats-item">
+                            <span class="sp-stats-label">Peso del prompt</span>
+                            <span class="sp-stats-value" id="statKb">—</span>
+                        </div>
+                        <div class="sp-stats-item" style="grid-column:1/-1;">
+                            <span class="sp-stats-label">Tiempo de respuesta del modelo</span>
+                            <span class="sp-stats-value" id="statElapsed">—</span>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
 
@@ -243,15 +291,15 @@
         <div class="wc-head">
             <div class="wc-icon wc-icon-green"><i class="fas fa-users"></i></div>
             <div class="wc-title-stack">
-                <span class="wc-title">Sujetos procesales detectados</span>
-                <span class="wc-sub">Resultado en formato JSON</span>
+                <span class="wc-title">Panel de resultados</span>
+                
             </div>
         </div>
         <div class="wc-body">
             <textarea id="resultArea"
                       class="result-textarea"
                       readonly
-                      placeholder="El resultado aparecerá aquí en formato JSON una vez completado el proceso…"></textarea>
+                      placeholder="El resultado aparecerá aquí una vez completado el proceso…"></textarea>
         </div>
     </div>
 
@@ -364,6 +412,7 @@
         resultArea.value = '';
         spLog.innerHTML  = '';
         clearTimers();
+        document.getElementById('spStats').classList.remove('show');
 
         if (!pdfInput.files.length) { showError('Debe seleccionar un archivo PDF.'); return; }
         if (!promptSel.value)       { showError('Debe seleccionar un prompt.');      return; }
@@ -419,6 +468,15 @@
                     : data.resultado;
             } else {
                 resultArea.value = JSON.stringify(data, null, 2);
+            }
+
+            /* ── Stats del modelo ── */
+            if (data.stats) {
+                const s = data.stats;
+                document.getElementById('statChars').textContent   = s.prompt_chars.toLocaleString('es-AR') + ' chars';
+                document.getElementById('statKb').textContent      = s.prompt_kb + ' KB';
+                document.getElementById('statElapsed').textContent = s.elapsed_s + ' seg';
+                document.getElementById('spStats').classList.add('show');
             }
 
         } catch (err) {

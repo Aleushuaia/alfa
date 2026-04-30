@@ -47,14 +47,14 @@
            title=""
            data-sidebar-tooltip="Probar modelo LLM">
             <span class="nav-icon"><i class="fas fa-robot"></i></span>
-            <span>Probar modelo</span>
+            <span>Probar modelo de IA</span>
         </a>
         <a href="{{ route('sujetos-procesales.index') }}"
            class="nav-link {{ request()->routeIs('sujetos-procesales.*') ? 'active' : '' }}"
            title=""
            data-sidebar-tooltip="Extraer sujetos procesales">
             <span class="nav-icon"><i class="fas fa-users"></i></span>
-            <span>Extraer sujetos procesales</span>
+            <span>Extracción con IA</span>
         </a>
 
         {{-- ── Configuración ── visible para todos los autenticados --}}

@@ -101,9 +101,15 @@ class SujetosProcesalesController extends Controller
             );
 
             // 3. Enviar al modelo LLM con timeout extendido
-            $respuesta = $this->ollama->chat($promptFinal, self::OLLAMA_TIMEOUT);
+            $promptChars = strlen($promptFinal);
+            $startTime   = microtime(true);
+            $respuesta   = $this->ollama->chat($promptFinal, self::OLLAMA_TIMEOUT);
+            $elapsedSecs = round(microtime(true) - $startTime, 2);
 
-            Log::info('SujetosProcesales: respuesta Ollama recibida', ['chars' => strlen($respuesta)]);
+            Log::info('SujetosProcesales: respuesta Ollama recibida', [
+                'chars'     => strlen($respuesta),
+                'elapsed_s' => $elapsedSecs,
+            ]);
 
             // 4. Intentar parsear JSON de la respuesta
             $json = $this->parsearRespuestaJson($respuesta);
@@ -111,6 +117,11 @@ class SujetosProcesalesController extends Controller
             return response()->json([
                 'resultado' => $json,
                 'crudo'     => $respuesta,
+                'stats'     => [
+                    'prompt_chars' => $promptChars,
+                    'prompt_kb'    => round($promptChars / 1024, 2),
+                    'elapsed_s'    => $elapsedSecs,
+                ],
             ]);
 
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
