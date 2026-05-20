@@ -38,3 +38,92 @@ docker compose build --no-cache nlp
 docker compose up -d --no-deps --build nlp
 
 
+# === Limpieza y recuperación de espacio en disco (Docker) ===
+
+IMPORTANTE: antes de borrar, inspeccione el uso con `docker system df` y revise contenedores/volúmenes/imagenes que necesite conservar.
+
+1) Mostrar uso de disco por Docker:
+
+```
+docker system df
+```
+
+2) Limpieza general (pide confirmación interactiva):
+
+```
+docker system prune
+```
+
+3) Limpieza agresiva: eliminar todo lo no usado (contenedores detenidos, imágenes no referenciadas, redes y caché). Incluye volúmenes con `--volumes` (¡peligro!):
+
+```
+docker system prune -a --volumes
+```
+
+4) Eliminar solo contenedores detenidos:
+
+```
+docker container prune -f
+```
+
+5) Eliminar imágenes "dangling" (sin tag) o todas las imágenes no referenciadas:
+
+```
+docker image prune -f              # dangling
+docker image prune -a -f           # todas las imágenes no usadas
+```
+
+6) Eliminar volúmenes no usados:
+
+```
+docker volume prune -f
+```
+
+7) Eliminar redes no usadas:
+
+```
+docker network prune -f
+```
+
+8) Limpiar cache del builder (útil tras builds grandes):
+
+```
+docker builder prune -a -f
+```
+
+9) Comandos útiles para eliminar elementos colgantes (GNU/Linux / macOS):
+
+```
+docker rmi $(docker images -f "dangling=true" -q)
+docker rm $(docker ps -a -q)               # elimina todos los contenedores (detener primero si hace falta)
+```
+
+En PowerShell (Windows) use variantes:
+
+```
+docker images -f "dangling=true" -q | ForEach-Object { docker rmi $_ }
+docker ps -a -q | ForEach-Object { docker rm $_ }
+```
+
+10) Limpieza para Docker Compose (elimina imágenes y volúmenes relacionados con el stack):
+
+```
+docker compose down --rmi all --volumes --remove-orphans
+```
+
+11) Filtrar por antigüedad (ejemplo: eliminar imágenes no usadas hace más de 24 horas):
+
+```
+docker image prune -a --filter "until=24h"
+docker builder prune --filter "until=24h"
+```
+
+Consejos rápidos:
+- Ejecutar `docker system df` antes para ver qué ocupa más.
+- Revisar `docker ps -a` y `docker images` antes de borrar.
+- Usar `-f` para forzar sin confirmación en scripts automáticos.
+- Tener cuidado con `--volumes` y con eliminar imágenes usadas por contenedores en ejecución.
+
+Guarde y ejecute estos pasos manualmente o conviértalos en scripts (`cleanup-docker.sh` / `cleanup-docker.ps1`) con precaución.
+
+

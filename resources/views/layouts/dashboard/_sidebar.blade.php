@@ -138,10 +138,9 @@
         <button type="button"
                 id="btn-collapse"
                 class="sidebar-collapse-btn"
-                data-sidebar-tooltip="Colapsar panel"
-                title="">
+                data-sidebar-tooltip="Minimizar panel de menú"
+                title="Minimizar panel de menú">
             <span class="nav-icon"><i class="fas fa-angles-left" id="collapse-icon"></i></span>
-            <span class="collapse-label">Colapsar</span>
         </button>
     </nav>
 

@@ -77,7 +77,9 @@
                 const icon  = document.getElementById('collapse-icon');
                 const label = btn.querySelector('.collapse-label');
                 if (label) label.textContent = collapsed ? 'Expandir' : 'Colapsar';
-                btn.dataset.sidebarTooltip = collapsed ? 'Expandir panel' : 'Colapsar panel';
+                const tip = collapsed ? 'Expandir panel de menú' : 'Minimizar panel de menú';
+                btn.dataset.sidebarTooltip = tip;
+                btn.title = tip;
             }
         }
 

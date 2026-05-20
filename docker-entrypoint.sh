@@ -21,14 +21,6 @@ if [ -n "${DB_PG_HOST}" ]; then
         php /var/www/docker/create-db.php
     fi
 
-    # ─── Ejecutar migraciones pendientes ──────────────────────────────────
-    if [ "$PG_READY" = true ]; then
-        echo "[entrypoint] Ejecutando migraciones pendientes..."
-        cd /var/www
-        php artisan migrate --force --no-interaction 2>&1 || echo "[entrypoint] ADVERTENCIA: migrate falló (puede ser primera ejecución)."
-        echo "[entrypoint] Ejecutando seeders..."
-        php artisan db:seed --force --no-interaction 2>&1 || echo "[entrypoint] ADVERTENCIA: seed falló."
-    fi
 fi
 
 # ─── Esperar a que MySQL/MariaDB esté disponible (opcional) ───────────────────
@@ -98,6 +90,22 @@ php artisan config:clear --no-interaction 2>/dev/null || true
 php artisan route:clear --no-interaction 2>/dev/null || true
 php artisan view:clear --no-interaction 2>/dev/null || true
 php artisan optimize:clear --no-interaction 2>/dev/null || true
+
+# ─── Permisos FINALES ─────────────────────────────────────────────────────────
+# IMPORTANTE: este bloque debe estar SIEMPRE al final, después de todos los
+# comandos "php artisan *" que se ejecutan como root. Esos comandos hacen
+# boot de Laravel y pueden crear/actualizar el archivo de log del día
+# (storage/logs/laravel-YYYY-MM-DD.log) con ownership root. Si no se corrige
+# aquí, php-fpm (www-data) recibirá "Permission denied" al primer request.
+echo "[entrypoint] Aplicando permisos finales sobre storage (post-artisan)..."
+mkdir -p \
+    /var/www/storage/logs \
+    /var/www/storage/framework/sessions \
+    /var/www/storage/framework/views \
+    /var/www/storage/framework/cache \
+    /var/www/bootstrap/cache
+chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 
 # Finalmente arrancar el proceso principal
 exec "$@"

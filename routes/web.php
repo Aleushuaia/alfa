@@ -96,6 +96,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/word-anonymizer/process-pdf', [WordAnonymizerController::class, 'processPdf'])->name('word-anonymizer.process-pdf');
     Route::post('/word-anonymizer/analyze', [WordAnonymizerController::class, 'analyzeText'])->name('word-anonymizer.analyze');
     Route::post('/word-anonymizer/anonymize', [WordAnonymizerController::class, 'anonymize'])->name('word-anonymizer.anonymize');
+    Route::post('/word-anonymizer/initials', [WordAnonymizerController::class, 'initializePersonas'])->name('word-anonymizer.initials');
     Route::get('/word-anonymizer/download', [WordAnonymizerController::class, 'download'])->name('word-anonymizer.download');
 
     // ── Probar modelo (Ollama LLM) ────────────────────────────────────────

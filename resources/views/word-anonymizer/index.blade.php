@@ -100,6 +100,7 @@
 .btn-hdr:disabled { opacity: .45; cursor: not-allowed; }
 .btn-hdr-blue   { background: linear-gradient(135deg,#2563eb,#1d4ed8); color:#fff; box-shadow: 0 2px 8px rgba(37,99,235,.28); }
 .btn-hdr-green  { background: linear-gradient(135deg,#059669,#10b981); color:#fff; box-shadow: 0 2px 8px rgba(16,185,129,.28); }
+.btn-hdr-amber  { background: linear-gradient(135deg,#d97706,#b45309); color:#fff; box-shadow: 0 2px 8px rgba(217,119,6,.28); }
 .btn-hdr-muted  { background: var(--badge-light-bg); color: var(--body-color); border: 1px solid var(--badge-light-border); }
 .btn-hdr-danger { background: var(--alert-danger-bg,#fee2e2); color: var(--alert-danger-color,#dc2626); }
 .btn-procesar {
@@ -487,6 +488,9 @@
                     </div>
                 </div>
                 <div style="display:flex;align-items:center;gap:.3rem;flex-wrap:wrap;">
+                    <button class="btn-hdr btn-hdr-amber" id="btn-inicializar-personas" title="Escribe las iniciales de cada persona en el campo etiqueta de la tabla">
+                        <i class="fas fa-id-badge"></i> Inicialar personas
+                    </button>
                     <button class="btn-hdr btn-hdr-danger" id="btn-bulk-blacklist" style="display:none;">
                         <i class="fas fa-ban"></i> Agregar a Blacklist
                     </button>
@@ -905,6 +909,7 @@ function renderTable(grouped){
 /*  Bulk Blacklist  */
 const btnBulkBl = $('btn-bulk-blacklist');
 const entCbAll  = $('ent-cb-all');
+const btnInicializarPersonas = $('btn-inicializar-personas');
 
 function updateBulkBlBtn(){
     const checked = document.querySelectorAll('#ent-tbody .ent-row-cb:checked');
@@ -978,6 +983,58 @@ if(btnBulkBl) btnBulkBl.addEventListener('click', async ()=>{
     btnBulkBl.disabled = false;
     btnBulkBl.innerHTML = '<i class="fas fa-ban"></i> Agregar a Blacklist';
     updateBulkBlBtn();
+});
+
+/*  Inicialar Personas  — escribe las iniciales en el campo etiqueta de cada fila PERSONA  */
+if(btnInicializarPersonas) btnInicializarPersonas.addEventListener('click', async ()=>{
+    // Recoger todas las filas de entidades tipo PERSONA
+    const perRows = Array.from(document.querySelectorAll('.entity-row'))
+        .filter(r => r.dataset.label === 'PER' || r.dataset.label === 'PERSON');
+
+    if(!perRows.length){
+        toast('No hay personas detectadas en la lista de entidades.','i');
+        return;
+    }
+
+    // Mapear cada fila a su nombre principal y colectar todos los nombres únicos
+    const names = [];
+    const rowNameMap = new Map(); // row → nombre principal
+    perRows.forEach(row=>{
+        let variants = [];
+        try{ variants = JSON.parse(row.dataset.entityTexts||'[]').map(x=>(x||'').trim()).filter(Boolean); }catch{}
+        const primary = variants[0] || row.querySelector('.ej-link')?.textContent.trim() || '';
+        if(primary) rowNameMap.set(row, primary);
+        variants.forEach(n=>{ if(n && !names.includes(n)) names.push(n); });
+    });
+
+    if(!names.length){ toast('No se pudieron obtener los nombres de las personas.','e'); return; }
+
+    btnInicializarPersonas.disabled = true;
+    btnInicializarPersonas.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando';
+
+    try{
+        const r = await apiFetch('{{ route("word-anonymizer.initials") }}', { names });
+        const d = await r.json();
+        if(!r.ok) throw new Error(d.error??d.message??'Error al calcular iniciales.');
+
+        const map = d.initials; // { "Juan Garcia": "J.G.", ... }
+
+        // Escribir las iniciales en el campo etiqueta de cada fila PERSONA
+        let updated = 0;
+        for(const [row, primaryName] of rowNameMap.entries()){
+            const initial = map[primaryName];
+            if(!initial) continue;
+            const input = row.querySelector('.ent-lbl-in');
+            if(input){ input.value = initial; updated++; }
+        }
+
+        toast(`${updated} etiqueta/s actualizadas con iniciales.`, 's');
+
+    }catch(err){ toast(err.message,'e'); }
+    finally{
+        btnInicializarPersonas.disabled = false;
+        btnInicializarPersonas.innerHTML = '<i class="fas fa-id-badge"></i> Inicialar personas';
+    }
 });
 
 /*  Navigation helpers  */

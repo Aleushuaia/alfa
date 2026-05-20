@@ -6,6 +6,7 @@ use App\Models\EntityBlacklist;
 use App\Models\EntityWhitelist;
 use App\Services\NlpEntityService;
 use App\Services\OcrExtractorService;
+use App\Services\TextNormalizationService;
 use App\Services\UnidadActivaService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -25,6 +26,7 @@ class WordAnonymizerController extends Controller
     public function __construct(
         private NlpEntityService $nlp,
         private OcrExtractorService $ocr,
+        private TextNormalizationService $normalization,
     ) {}
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -35,6 +37,28 @@ class WordAnonymizerController extends Controller
         $entityColors = EntityConfigController::getUserColors(auth()->id() ?? 0);
 
         return view('word-anonymizer.index', compact('entityColors'));
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // initializePersonas  —  Converts a list of full names to initials
+    //
+    // POST /word-anonymizer/initials
+    // Body: { names: ["Juan Garcia", "Maria Lopez", ...] }
+    // Returns: { initials: { "Juan Garcia": "J.G.", "Maria Lopez": "M.L." } }
+    // ─────────────────────────────────────────────────────────────────────────
+    public function initializePersonas(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $request->validate([
+            'names'   => ['required', 'array', 'min:1', 'max:200'],
+            'names.*' => ['required', 'string', 'max:500'],
+        ]);
+
+        $map = [];
+        foreach ($request->input('names') as $name) {
+            $map[$name] = $this->normalization->toInitials($name);
+        }
+
+        return response()->json(['initials' => $map]);
     }
 
     // ─────────────────────────────────────────────────────────────────────────

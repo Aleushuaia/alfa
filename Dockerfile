@@ -48,7 +48,12 @@ WORKDIR /var/www
 
 # Copiar manifiestos para aprovechar cache de capas
 COPY composer.json composer.lock* ./
-RUN composer install \
+# Deshabilitar verificacion SSL de git/Composer (entorno con proxy corporativo
+# que inyecta certificado auto-firmado). Solo aplica durante el build.
+RUN git config --global http.sslVerify false \
+ && composer config --global disable-tls true \
+ && composer config --global secure-http false \
+ && composer install \
         --no-dev \
         --no-scripts \
         --no-autoloader \
@@ -63,6 +68,8 @@ COPY . .
 RUN composer dump-autoload --optimize --no-interaction
 
 # Directorios de runtime y permisos
+# Nota: g+s (setgid bit) en storage hace que los archivos creados por root
+# hereden el grupo www-data, actuando como segunda capa de proteccion.
 RUN mkdir -p \
         /var/log/supervisor \
         /run/nginx \
@@ -70,9 +77,11 @@ RUN mkdir -p \
         /var/www/storage/framework/views \
         /var/www/storage/framework/cache \
         /var/www/storage/logs \
+        /var/www/storage/app/private \
         /var/www/bootstrap/cache \
  && chown -R www-data:www-data /var/www \
- && chmod -R 775 /var/www/storage /var/www/bootstrap/cache
+ && chmod -R 775 /var/www/storage /var/www/bootstrap/cache \
+ && chmod -R g+s /var/www/storage /var/www/bootstrap/cache
 
 # Nginx user = www-data (igual que php-fpm)
 RUN sed -i 's/user nginx;/user www-data;/g' /etc/nginx/nginx.conf 2>/dev/null || true
