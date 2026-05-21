@@ -231,6 +231,11 @@
 #wa-ctx .ctx-head { padding: 4px 13px 2px; font-size: .68rem; color: var(--muted-color); font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
 #wa-ctx .ctx-preview { padding: 2px 13px 4px; font-size: .76rem; font-weight: 600; color: var(--heading-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 230px; }
 #wa-ctx button.loading { opacity: .6; pointer-events: none; }
+#wa-ctx .ctx-type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; padding: 4px 8px 6px; }
+#wa-ctx .ctx-type-opt { display: flex; align-items: center; gap: 5px; padding: 5px 7px; border: 1px solid var(--card-border); border-radius: 5px; background: none; font-size: .75rem; cursor: pointer; text-align: left; color: var(--body-color); width: 100%; transition: background .12s; }
+#wa-ctx .ctx-type-opt:hover { background: var(--table-hover-bg,#f0f4ff); }
+#wa-ctx .ctx-type-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; border: 1px solid rgba(0,0,0,.12); display: inline-block; }
+.wa-editor[contenteditable="false"] { cursor: default; user-select: text; }
 
 /*  ENTITY TABLE  */
 .ent-scroll { overflow-y: auto; max-height: calc(100vh - 220px); -webkit-overflow-scrolling: touch; }
@@ -521,7 +526,7 @@
                 <i class="fas fa-mouse-pointer me-1"></i>
                 <strong>Click</strong> en entidad &rarr; siguiente ocurrencia &middot;
                 <strong>Dbl-click</strong> en fila &rarr; primera ocurrencia &middot;
-                <strong>Clic derecho</strong> en fila o en span &rarr; blacklist/ignorar
+                <strong>Clic derecho</strong> en texto/entidad &rarr; etiquetar, whitelist, blacklist
             </div>
         </div>
 
@@ -555,6 +560,17 @@
 /*  Config  */
 const EC    = @json($entityColors);
 const LMAP  = { PER:'PERSONA',PERSON:'PERSONA',ORG:'ORGANIZACIÓN',LOC:'LUGAR',GPE:'LUGAR',DATE:'FECHA',DNI:'DNI',EMAIL:'EMAIL',PHONE:'TELÉFONO',PATENTE:'PATENTE',MISC:'OTRO' };
+const ENTITY_DEFS = [
+    { code:'PER',  cls:'person',   label:'Persona' },
+    { code:'ORG',  cls:'org',      label:'Organización' },
+    { code:'LOC',  cls:'location', label:'Lugar' },
+    { code:'DATE', cls:'date',     label:'Fecha' },
+    { code:'DNI',  cls:'dni',      label:'DNI' },
+    { code:'EMAIL',cls:'email',    label:'Email' },
+    { code:'PHONE',cls:'phone',    label:'Teléfono' },
+    { code:'MISC', cls:'misc',     label:'Otros' },
+];
+function labelToClass(code){ const d=ENTITY_DEFS.find(x=>x.code===code); return d?d.cls:'misc'; }
 const ORDER = ['PERSONA','ORGANIZACIÓN','LUGAR','FECHA','DNI','EMAIL','TELÉFONO','OTRO'];
 const WEXT  = ['.doc','.docx'];
 
@@ -729,11 +745,16 @@ function setSource(src, label){
 
 function showEditorText(text){
     waEmpty.style.display='none'; waEditor.style.display='block';
-    waEditor.innerText=text; syncEmpty(); enableBtns(true);
+    waEditor.contentEditable='true'; // temporarily to allow innerText assignment
+    waEditor.innerText=text;
+    waEditor.contentEditable='false'; // read-only after load
+    syncEmpty(); enableBtns(true);
 }
 function showEditorHtml(html){
     waEmpty.style.display='none'; waEditor.style.display='block';
-    waEditor.innerHTML=html; syncEmpty();
+    waEditor.innerHTML=html;
+    waEditor.contentEditable='false'; // read-only after analysis
+    syncEmpty();
 }
 function syncEmpty(){
     const isEmpty = waEditor.innerText.trim()==='';
@@ -773,6 +794,7 @@ function resetAll(){
     waEntCard.style.display='none'; waMain.classList.remove('split');
     // Keep the editor visible (always shown) — just clear content
     waEmpty.style.display=''; waEditor.style.display='block';
+    waEditor.contentEditable='true'; // editable again so user can paste
     waEditor.innerHTML=''; waEditor.setAttribute('data-empty','true');
     enableBtns(false);
     dlCard.style.display='none'; doneCard.style.display='none';
@@ -1070,19 +1092,79 @@ function flash(span,variants){
 }
 
 /*  Table row double-click  */
-function bindRowEvents(){
-    document.querySelectorAll('.entity-row').forEach(row=>{
-        row.querySelector('.ent-row-cb')?.addEventListener('click', e => e.stopPropagation());
-        row.addEventListener('dblclick',e=>{
-            if(e.target.closest('.ent-lbl-in')||e.target.closest('.ent-row-cb')) return;
-            let variants=[];
-            try{ variants=JSON.parse(row.dataset.entityTexts||'[]'); } catch{ variants=[row.querySelector('.ej-link')?.textContent.trim()||'']; }
-            const spans=findSpans(variants);
-            if(!spans.length){ toast('No se encontró la entidad en el texto.','i'); return; }
-            scrollTo(spans[0]); flash(spans[0],variants);
-            row.classList.add('jumping'); setTimeout(()=>row.classList.remove('jumping'),700);
-        });
+function bindRowEventsToRow(row){
+    row.querySelector('.ent-row-cb')?.addEventListener('click', e => e.stopPropagation());
+    row.addEventListener('dblclick',e=>{
+        if(e.target.closest('.ent-lbl-in')||e.target.closest('.ent-row-cb')) return;
+        let variants=[];
+        try{ variants=JSON.parse(row.dataset.entityTexts||'[]'); } catch{ variants=[row.querySelector('.ej-link')?.textContent.trim()||'']; }
+        const spans=findSpans(variants);
+        if(!spans.length){ toast('No se encontró la entidad en el texto.','i'); return; }
+        scrollTo(spans[0]); flash(spans[0],variants);
+        row.classList.add('jumping'); setTimeout(()=>row.classList.remove('jumping'),700);
     });
+}
+function bindRowEvents(){
+    document.querySelectorAll('.entity-row').forEach(row=>bindRowEventsToRow(row));
+}
+
+/*  Add a manually-tagged entity to the entity table  */
+function addManualEntityToTable(text, label){
+    const col  = EC[label] || '#ddd';
+    const dl   = LMAP[label] || label || 'OTRO';
+
+    // If this text+label already exists as a row, just increment count
+    let existingRow = null;
+    document.querySelectorAll('.entity-row').forEach(row=>{
+        if(row.dataset.label !== label) return;
+        let v=[]; try{ v=JSON.parse(row.dataset.entityTexts||'[]').map(x=>(x||'').trim()); }catch{}
+        if(v.includes(text.trim())) existingRow=row;
+    });
+    if(existingRow){
+        const cb=existingRow.querySelector('.badge.bg-secondary');
+        if(cb) cb.textContent = String((parseInt(cb.textContent)||0)+1);
+        return;
+    }
+
+    // Find existing section separator for this label type
+    let sectionSep = null;
+    document.querySelectorAll('#ent-tbody .table-secondary').forEach(sep=>{
+        if(sep.querySelector('td')?.textContent.trim()===dl) sectionSep=sep;
+    });
+
+    const count = document.querySelectorAll(`#ent-tbody .entity-row[data-label="${label}"]`).length + 1;
+    const newRow = document.createElement('tr');
+    newRow.className='entity-row';
+    newRow.dataset.entityTexts=JSON.stringify([text]);
+    newRow.dataset.label=label;
+    newRow.style.cursor='pointer';
+    newRow.innerHTML=
+        `<td class="py-1" style="width:28px;"><input type="checkbox" class="ent-row-cb" style="cursor:pointer;"></td>`+
+        `<td class="fw-medium py-1"><span class="ej-link" style="cursor:pointer;">${esc(text)}</span></td>`+
+        `<td class="py-1"><span class="badge rounded-pill" style="background:${col};color:#333;font-size:.67rem;">${esc(dl)}</span></td>`+
+        `<td class="text-center py-1"><span class="badge bg-secondary">1</span></td>`+
+        `<td class="py-1"><input type="text" class="form-control form-control-sm ent-lbl-in" value="${esc('['+dl+' '+count+']')}" style="min-width:120px;font-size:.75rem;padding:.18rem .4rem;"></td>`;
+
+    if(sectionSep){
+        // Insert after the last entity-row within this section
+        let anchor=sectionSep;
+        let nx=sectionSep.nextElementSibling;
+        while(nx && !nx.classList.contains('table-secondary')){ anchor=nx; nx=nx.nextElementSibling; }
+        anchor.after(newRow);
+    } else {
+        // Create a new section header and append to end
+        const sep=document.createElement('tr');
+        sep.className='table-secondary';
+        sep.innerHTML=`<td colspan="4" class="fw-semibold py-1" style="font-size:.73rem;">${esc(dl)}</td>`;
+        entTbody.appendChild(sep);
+        entTbody.appendChild(newRow);
+    }
+
+    bindRowEventsToRow(newRow);
+    entCount.textContent=document.querySelectorAll('#ent-tbody .entity-row').length+' entidades';
+    // Show entity panel if not visible
+    waEntCard.style.display='flex';
+    waMain.classList.add('split');
 }
 
 /*  Editor click: cycle occurrences  */
@@ -1187,12 +1269,16 @@ document.addEventListener('contextmenu',e=>{
 
     if(selText&&!span&&inEd){
         e.preventDefault();
-        const pv=selText.length>38?selText.slice(0,38)+'':selText;
+        // Save the current selection range BEFORE ctx takes focus
+        const sel=window.getSelection();
+        const savedRange = sel&&sel.rangeCount>0 ? sel.getRangeAt(0).cloneRange() : null;
+        const pv=selText.length>38?selText.slice(0,38)+'…':selText;
         openCtx(e.clientX,e.clientY,`
             <div class="ctx-head">Texto seleccionado</div>
             <div class="ctx-preview">"${esc(pv)}"</div><hr>
             <button data-a="wl"><i class="fas fa-list-check me-2 text-success"></i>Agregar a Whitelist</button>
             <button data-a="bl"><i class="fas fa-ban me-2 text-danger"></i>Agregar a Blacklist</button>
+            <button data-a="ent"><i class="fas fa-tag me-2 text-primary"></i>Agregar como entidad…</button>
         `);
         ctx.querySelector('[data-a="wl"]').addEventListener('click',async ev=>{
             ev.stopPropagation(); const btn=ev.currentTarget; btn.classList.add('loading'); btn.textContent=' Guardando';
@@ -1203,6 +1289,57 @@ document.addEventListener('contextmenu',e=>{
             ev.stopPropagation(); const btn=ev.currentTarget; btn.classList.add('loading'); btn.textContent=' Guardando';
             try{ const r=await apiFetch('{{ route("pdf-analyzer.add-blacklist") }}',{term:selText,entity_type:null}); const d=await r.json(); if(!r.ok||!d.success) throw new Error(d.message||'Error'); toast(d.message,'s'); }
             catch(err){ toast(' '+err.message,'e'); } finally{ closeCtx(); }
+        },{once:true});
+        ctx.querySelector('[data-a="ent"]').addEventListener('click', ev=>{
+            ev.stopPropagation();
+            // Replace ctx content with entity type picker
+            const typeBtns = ENTITY_DEFS.map(d=>
+                `<button class="ctx-type-opt" data-code="${d.code}">`+
+                `<span class="ctx-type-dot" style="background:${EC[d.code]||d.color||'#ddd'};"></span>${d.label}</button>`
+            ).join('');
+            ctx.innerHTML=
+                `<div class="ctx-head">Tipo de entidad</div>`+
+                `<div class="ctx-preview">"${esc(pv)}"</div><hr>`+
+                `<div class="ctx-type-grid">${typeBtns}</div>`;
+            // Reposition in case size changed
+            const mw=ctx.offsetWidth||220, mh=ctx.offsetHeight||160;
+            const cx=Math.min(parseInt(ctx.style.left),window.innerWidth-mw-8);
+            const cy=Math.min(parseInt(ctx.style.top),window.innerHeight-mh-8);
+            ctx.style.left=cx+'px'; ctx.style.top=cy+'px';
+
+            ctx.querySelectorAll('.ctx-type-opt').forEach(btn=>{
+                btn.addEventListener('click', ev2=>{
+                    ev2.stopPropagation();
+                    const code=btn.dataset.code;
+                    const def=ENTITY_DEFS.find(x=>x.code===code);
+                    if(!def||!savedRange) { closeCtx(); return; }
+                    const color=EC[code]||'#ddd';
+                    // Wrap the saved range with an entity span
+                    try{
+                        const span=document.createElement('span');
+                        span.className=`entity ${def.cls}`;
+                        span.dataset.label=code;
+                        span.title=code;
+                        span.style.background=color;
+                        savedRange.surroundContents(span);
+                    } catch(_){
+                        // surroundContents fails if range crosses elements → use extract+wrap
+                        try{
+                            const span=document.createElement('span');
+                            span.className=`entity ${def.cls}`;
+                            span.dataset.label=code;
+                            span.title=code;
+                            span.style.background=color;
+                            span.appendChild(savedRange.extractContents());
+                            savedRange.insertNode(span);
+                        } catch(e2){ toast('No se pudo etiquetar el texto seleccionado.','e'); closeCtx(); return; }
+                    }
+                    // Add to entity table
+                    addManualEntityToTable(selText, code);
+                    closeCtx();
+                    toast(`"${selText.length>30?selText.slice(0,30)+'…':selText}" etiquetado como ${def.label}.`,'s');
+                },{once:true});
+            });
         },{once:true});
         e.stopPropagation(); return;
     }
