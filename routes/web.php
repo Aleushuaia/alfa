@@ -72,6 +72,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/pdf-analyzer/analyze-text', [PdfAnalyzerController::class, 'analyzeText'])->name('pdf-analyzer.analyze-text');
     Route::post('/pdf-analyzer/blacklist', [PdfAnalyzerController::class, 'addToBlacklist'])->name('pdf-analyzer.add-blacklist');
     Route::get('/pdf-analyzer/export', [PdfAnalyzerController::class, 'exportPdf'])->name('pdf-analyzer.export');
+    Route::post('/pdf-analyzer/remove-whitelist', [PdfAnalyzerController::class, 'removeFromWhitelist'])->name('pdf-analyzer.remove-from-whitelist');
+    Route::post('/pdf-analyzer/remove-blacklist', [PdfAnalyzerController::class, 'removeFromBlacklist'])->name('pdf-analyzer.remove-from-blacklist');
 
     // ── Gestión de Blacklist ───────────────────────────────────────────────
     Route::get('/blacklist', [PdfAnalyzerController::class, 'blacklistIndex'])->name('blacklist.index');

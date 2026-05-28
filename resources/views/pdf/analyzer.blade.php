@@ -233,7 +233,84 @@
         border-radius: 4px;
         padding: 0 3px;
     }
-    /* (Removed) Justified helper removed — feature deprecated */
+
+    /* ── Tooltip flotante al pasar el mouse sobre una entidad ─────────────── */
+    .entity-rich-tooltip {
+        position: fixed;
+        z-index: 10500;
+        background: var(--card-bg, #fff);
+        border: 1px solid var(--card-border, #dee2e6);
+        border-radius: 8px;
+        box-shadow: 0 6px 24px rgba(0,0,0,.18);
+        padding: 9px 13px 8px;
+        min-width: 170px;
+        max-width: 290px;
+        pointer-events: auto;
+        font-size: .8rem;
+        line-height: 1.4;
+        display: none;
+    }
+    .ert-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 5px;
+    }
+    .ert-type {
+        font-weight: 700;
+        font-size: .84rem;
+        color: var(--body-color, #1e293b);
+    }
+    .ert-count {
+        color: #888;
+        font-size: .74rem;
+        white-space: nowrap;
+    }
+    .ert-badges {
+        display: flex;
+        gap: 4px;
+        flex-wrap: wrap;
+        margin-bottom: 5px;
+    }
+    .ert-badge-wl {
+        font-size: .7rem;
+        padding: 2px 7px;
+        border-radius: 4px;
+        background: #d4edda;
+        color: #155724;
+        font-weight: 600;
+    }
+    .ert-badge-bl {
+        font-size: .7rem;
+        padding: 2px 7px;
+        border-radius: 4px;
+        background: #f8d7da;
+        color: #721c24;
+        font-weight: 600;
+    }
+    .ert-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        border-top: 1px solid var(--card-border, #eee);
+        padding-top: 5px;
+        margin-top: 3px;
+    }
+    .ert-action-btn {
+        background: none;
+        border: none;
+        padding: 3px 0;
+        text-align: left;
+        font-size: .77rem;
+        cursor: pointer;
+        color: var(--body-color, #555);
+        text-decoration: underline;
+        text-decoration-color: rgba(0,0,0,.25);
+        width: 100%;
+    }
+    .ert-action-btn:hover { color: var(--accent, #6c5ce7); }
+    .ert-action-btn:disabled { opacity: .5; pointer-events: none; }
 
     /* ── 80vh panels ─────────────────────────────────────── */
     .row.g-3 > .col-lg-3,
@@ -514,6 +591,16 @@
     </div>{{-- /col-lg-9 --}}
 
 </div>{{-- /row --}}
+
+{{-- ── Tooltip flotante de entidades ──────────────────────────────────────── --}}
+<div id="entity-rich-tooltip" class="entity-rich-tooltip" role="tooltip" aria-live="off">
+    <div class="ert-header">
+        <span class="ert-type" id="ert-type"></span>
+        <span class="ert-count" id="ert-count"></span>
+    </div>
+    <div class="ert-badges" id="ert-badges"></div>
+    <div class="ert-actions" id="ert-actions" style="display:none"></div>
+</div>
 
 @endsection
 
@@ -1185,61 +1272,205 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 6. Click izquierdo en cualquier entidad -> ir a la siguiente ocurrencia
     const editor = document.getElementById('editor-container');
+
+    // ── Tooltip rico al pasar el mouse sobre entidades ─────────────────────
+    // Muestra tipo, ocurrencia (X/Y), estado whitelist/blacklist y acciones.
+    const richTooltip    = document.getElementById('entity-rich-tooltip');
+    const ertType        = document.getElementById('ert-type');
+    const ertCount       = document.getElementById('ert-count');
+    const ertBadges      = document.getElementById('ert-badges');
+    const ertActions     = document.getElementById('ert-actions');
+
+    // Listas de términos en whitelist y blacklist (mutable — se actualiza tras quitar términos)
+    const whitelistTerms = {!! json_encode($whitelistTerms ?? []) !!};
+    const blacklistTerms = {!! json_encode($blacklistTerms ?? []) !!};
+
+    let tooltipHideTimer  = null;
+    let tooltipVisible    = false;
+
+    const CSS_CLASS_MAP = {
+        'person': 'PERSONA', 'org': 'ORGANIZACIÓN', 'location': 'LUGAR',
+        'date': 'FECHA', 'dni': 'DNI', 'email': 'EMAIL',
+        'phone': 'TELÉFONO', 'misc': 'OTRO',
+    };
+
+    function normTerm(s) {
+        return (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    }
+
+    function isInList(arr, text) {
+        const n = normTerm(text);
+        return arr.some(t => normTerm(t) === n);
+    }
+
+    function positionRichTooltip(anchorSpan) {
+        if (!richTooltip) return;
+        const rect = anchorSpan.getBoundingClientRect();
+        richTooltip.style.visibility = 'hidden';
+        richTooltip.style.display    = 'block';
+        requestAnimationFrame(() => {
+            const tw  = richTooltip.offsetWidth;
+            const th  = richTooltip.offsetHeight;
+            let top  = rect.bottom + 6;
+            let left = rect.left;
+            if (top + th > window.innerHeight - 8) top = rect.top - th - 6;
+            if (left + tw > window.innerWidth  - 8) left = window.innerWidth - tw - 8;
+            if (left < 6) left = 6;
+            richTooltip.style.top        = top  + 'px';
+            richTooltip.style.left       = left + 'px';
+            richTooltip.style.visibility = 'visible';
+            tooltipVisible = true;
+        });
+    }
+
+    function hideRichTooltip(immediate) {
+        clearTimeout(tooltipHideTimer);
+        if (immediate) {
+            if (richTooltip) richTooltip.style.display = 'none';
+            tooltipVisible = false;
+            return;
+        }
+        tooltipHideTimer = setTimeout(() => {
+            if (richTooltip) richTooltip.style.display = 'none';
+            tooltipVisible = false;
+        }, 120);
+    }
+
+    async function removeFromList(listType, term, span) {
+        const url = listType === 'whitelist'
+            ? "{{ route('pdf-analyzer.remove-from-whitelist') }}"
+            : "{{ route('pdf-analyzer.remove-from-blacklist') }}";
+
+        const btn = ertActions.querySelector(`[data-remove="${listType}"]`);
+        if (btn) { btn.disabled = true; btn.textContent = '⏳ Quitando…'; }
+
+        try {
+            const res  = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
+                body: JSON.stringify({ term }),
+            });
+            const data = await res.json();
+            if (!res.ok || !data.success) throw new Error(data.message || 'Error');
+
+            // Actualizar lista local para que el tooltip refleje el cambio inmediatamente
+            if (listType === 'whitelist') {
+                const idx = whitelistTerms.findIndex(t => normTerm(t) === normTerm(term));
+                if (idx >= 0) whitelistTerms.splice(idx, 1);
+                // Quitar atributo data-whitelist del span para reflejar el cambio
+                if (span) span.removeAttribute('data-whitelist');
+            } else {
+                const idx = blacklistTerms.findIndex(t => normTerm(t) === normTerm(term));
+                if (idx >= 0) blacklistTerms.splice(idx, 1);
+            }
+
+            showToast(data.message, 'success');
+        } catch (err) {
+            showToast('❌ ' + err.message, 'danger');
+            if (btn) { btn.disabled = false; btn.textContent = listType === 'whitelist' ? 'Quitar de whitelist' : 'Quitar de blacklist'; }
+        }
+        hideRichTooltip(true);
+    }
+
+    function showRichTooltip(span) {
+        if (!richTooltip) return;
+        clearTimeout(tooltipHideTimer);
+
+        const text     = getSpanOwnText(span).trim();
+        const variants = findVariantsForSpan(span);
+        const allSpans = findEntitySpans(variants);
+        const idx      = allSpans.indexOf(span);
+
+        // Resolver tipo de entidad en español
+        let displayLabel = null;
+        document.querySelectorAll('.entity-row').forEach(row => {
+            if (displayLabel) return;
+            try {
+                const variantsList = JSON.parse(row.dataset.entityTexts || '[]');
+                if (Array.isArray(variantsList) && variantsList.map(v => v.trim()).includes(text)) {
+                    const rawLabel = row.dataset.label || '';
+                    displayLabel = LABEL_MAP[rawLabel] || rawLabel || null;
+                }
+            } catch (e) {}
+        });
+        if (!displayLabel) {
+            for (const k in CSS_CLASS_MAP) {
+                if (span.classList.contains(k)) { displayLabel = CSS_CLASS_MAP[k]; break; }
+            }
+        }
+
+        // Llenar cabecera
+        ertType.textContent  = displayLabel || 'ENTIDAD';
+        ertCount.textContent = idx >= 0 ? (idx + 1) + ' / ' + allSpans.length : '';
+
+        // Badges de whitelist / blacklist
+        ertBadges.innerHTML = '';
+        const inWl = isInList(whitelistTerms, text);
+        const inBl = isInList(blacklistTerms, text);
+        if (inWl) {
+            const b = document.createElement('span');
+            b.className = 'ert-badge-wl';
+            b.textContent = '✓ Whitelist';
+            ertBadges.appendChild(b);
+        }
+        if (inBl) {
+            const b = document.createElement('span');
+            b.className = 'ert-badge-bl';
+            b.textContent = '⚠ Blacklist';
+            ertBadges.appendChild(b);
+        }
+
+        // Acciones para quitar de listas
+        ertActions.innerHTML = '';
+        if (inWl || inBl) {
+            ertActions.style.display = '';
+            if (inWl) {
+                const btn = document.createElement('button');
+                btn.className = 'ert-action-btn';
+                btn.dataset.remove = 'whitelist';
+                btn.textContent = 'Quitar de whitelist';
+                btn.addEventListener('click', () => removeFromList('whitelist', text, span), { once: true });
+                ertActions.appendChild(btn);
+            }
+            if (inBl) {
+                const btn = document.createElement('button');
+                btn.className = 'ert-action-btn';
+                btn.dataset.remove = 'blacklist';
+                btn.textContent = 'Quitar de blacklist';
+                btn.addEventListener('click', () => removeFromList('blacklist', text, span), { once: true });
+                ertActions.appendChild(btn);
+            }
+        } else {
+            ertActions.style.display = 'none';
+        }
+
+        positionRichTooltip(span);
+    }
+
+    // Mantener el tooltip visible mientras el ratón esté sobre él
+    if (richTooltip) {
+        richTooltip.addEventListener('mouseenter', () => clearTimeout(tooltipHideTimer));
+        richTooltip.addEventListener('mouseleave', () => hideRichTooltip(false));
+    }
+
     if (editor) {
-        // Hover: add temporary hover class so user sees which entity is active
+        // Hover: clase visual + tooltip rico
         editor.addEventListener('mouseover', (e) => {
             const span = e.target.closest('.entity');
-            if (!span) return;
-            span.classList.add('entity-hover');
-            // compute variants for this span and show occurrence tooltip relative to the group
-            const variants = findVariantsForSpan(span);
-            const spans = findEntitySpans(variants);
-            const idx = spans.indexOf(span);
-            if (idx >= 0) {
-                // Try to obtain the entity type from the grouped table (preferred)
-                let displayLabel = null;
-                const text = getSpanOwnText(span).trim();
-                document.querySelectorAll('.entity-row').forEach(row => {
-                    const raw = row.dataset.entityTexts;
-                    if (!raw) return;
-                    try {
-                        const variantsList = JSON.parse(raw);
-                        if (Array.isArray(variantsList) && variantsList.map(v => v.trim()).includes(text)) {
-                            const rawLabel = row.dataset.label || '';
-                            displayLabel = (LABEL_MAP[rawLabel] || rawLabel) || displayLabel;
-                        }
-                    } catch (err) {
-                        // ignore
-                    }
-                });
-
-                // Fallback: infer from CSS class names (legacy)
-                if (!displayLabel) {
-                    const classMap = {
-                        'person': 'PERSONA',
-                        'org': 'ORGANIZACIÓN',
-                        'location': 'LUGAR',
-                        'date': 'FECHA',
-                        'dni': 'DNI',
-                        'email': 'EMAIL',
-                        'phone': 'TELÉFONO',
-                        'misc': 'OTRO'
-                    };
-                    for (const k in classMap) {
-                        if (span.classList.contains(k)) { displayLabel = classMap[k]; break; }
-                    }
-                }
-
-                const title = (displayLabel ? displayLabel + ' — ' : '') + (idx + 1) + '/' + spans.length;
-                span.setAttribute('title', title);
+            if (!span) {
+                // El ratón salió de un span al editor → iniciar cierre con delay
+                hideRichTooltip(false);
+                return;
             }
+            span.classList.add('entity-hover');
+            showRichTooltip(span);
         });
 
         editor.addEventListener('mouseout', (e) => {
             const span = e.target.closest('.entity');
             if (!span) return;
             span.classList.remove('entity-hover');
-            span.removeAttribute('title');
+            hideRichTooltip(false);
         });
 
         editor.addEventListener('click', (e) => {
@@ -1264,8 +1495,6 @@ document.addEventListener('DOMContentLoaded', () => {
             e.stopPropagation();
         });
     }
-
-    // Tooltip behavior is handled in the hover/click handlers above (group-aware)
 
     // ── Función utilitaria: Toast de notificación ─────────────────────────
     // Muestra un mensaje flotante breve en la esquina inferior derecha.

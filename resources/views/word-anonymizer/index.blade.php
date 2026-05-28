@@ -452,7 +452,10 @@
                     </div>
                 </div>
                 <div style="display:flex;align-items:center;gap:.3rem;flex-wrap:wrap;flex-shrink:0;">
-                    <button class="btn-hdr btn-hdr-blue"   id="btn-analizar"  disabled><i class="fas fa-search"></i> Buscar Entidades</button>
+                    <span id="reanalyze-spinner" style="display:none;align-items:center;gap:.28rem;font-size:.7rem;color:var(--muted-color);white-space:nowrap;padding:.1rem .4rem;border-radius:6px;background:color-mix(in srgb,#2563eb 8%,var(--card-bg));border:1px solid color-mix(in srgb,#2563eb 20%,var(--card-border));">
+                        <i class="fas fa-circle-notch fa-spin" style="color:#2563eb;font-size:.72rem;"></i> Re-analizando…
+                    </span>
+                    <button class="btn-hdr btn-hdr-blue"   id="btn-analizar"  disabled><i class="fas fa-search"></i> Analizar texto</button>
                     <button class="btn-hdr btn-hdr-muted"  id="btn-copy"      disabled><i class="fas fa-copy"></i> Copiar</button>
                     <button class="btn-hdr btn-hdr-muted"  id="btn-dl-txt"    disabled><i class="fas fa-file-arrow-down"></i> .txt</button>
                     <button class="btn-hdr btn-hdr-danger" id="btn-clear"     disabled><i class="fas fa-trash-alt"></i> Limpiar</button>
@@ -621,9 +624,10 @@ const dlCard      = $('download-card');
 const doneCard    = $('done-card');
 const doneCardSub = $('done-card-sub');
 const btnDlTxtDone= $('btn-dl-txt-done');
-const tip         = $('wa-tip');
-const ctx         = $('wa-ctx');
-const toasts      = $('wa-toasts');
+const tip            = $('wa-tip');
+const ctx            = $('wa-ctx');
+const toasts         = $('wa-toasts');
+const reanalyzeSpin  = $('reanalyze-spinner');
 
 let curFile = 'texto-extraido.txt';
 let lastFlash = null;
@@ -874,15 +878,27 @@ if(btnDlTxtDone) btnDlTxtDone.addEventListener('click',()=>{
     toast('Archivo descargado.','s');
 });
 
-/*  Analyze  */
-btnAnalizar.addEventListener('click', async()=>{
+/*  Analyze — shared function callable from button or entity-add flow  */
+async function runAnalyze(fromEntityAdd=false){
     const text=waEditor.innerText.trim();
-    if(!text||text.length<10){ toast('Ingresá al menos 10 caracteres.','e'); return; }
-    const sel=getTypes(); if(!sel.length){ toast('Seleccioná al menos un tipo.','e'); return; }
+    if(!text||text.length<10){
+        if(!fromEntityAdd) toast('Ingresá al menos 10 caracteres.','e');
+        return;
+    }
+    const sel=getTypes();
+    if(!sel.length){
+        if(!fromEntityAdd) toast('Seleccioná al menos un tipo.','e');
+        return;
+    }
 
-    btnAnalizar.disabled=true; btnAnalizar.innerHTML='<i class="fas fa-spinner fa-spin"></i> Buscando';
+    btnAnalizar.disabled=true;
+    btnAnalizar.innerHTML='<i class="fas fa-spinner fa-spin"></i> Analizando';
     pgAn.start();
-    waEntCard.style.display='none'; waMain.classList.remove('split'); dlCard.style.display='none'; lastFlash=null;
+
+    if(!fromEntityAdd){
+        waEntCard.style.display='none'; waMain.classList.remove('split');
+        dlCard.style.display='none'; lastFlash=null;
+    }
 
     const body=new URLSearchParams({_token:csrf(),text,entity_filter:sel.join(',')});
     try{
@@ -895,11 +911,22 @@ btnAnalizar.addEventListener('click', async()=>{
         if(!r.ok) throw new Error(d.error??d.message??'Error al analizar.');
         if(d.html) showEditorHtml(d.html);
         const grouped = d.groupedEntities||[];
-        if(!grouped.length){ toast('No se detectaron entidades.','i'); }
-        else{ showEntityPanel(grouped); toast(`${grouped.length} entidad/es detectadas.`,'s'); }
+        if(!grouped.length){
+            if(!fromEntityAdd) toast('No se detectaron entidades.','i');
+        } else{
+            showEntityPanel(grouped);
+            if(fromEntityAdd) toast(`Análisis actualizado: ${grouped.length} entidad/es detectadas.`,'s');
+            else toast(`${grouped.length} entidad/es detectadas.`,'s');
+        }
     } catch(err){ toast(err.message,'e'); }
-    finally{ pgAn.finish(); btnAnalizar.disabled=false; btnAnalizar.innerHTML='<i class="fas fa-search"></i> Buscar Entidades'; }
-});
+    finally{
+        pgAn.finish();
+        btnAnalizar.disabled=false;
+        btnAnalizar.innerHTML='<i class="fas fa-search"></i> Analizar texto';
+        if(reanalyzeSpin) reanalyzeSpin.style.display='none';
+    }
+}
+btnAnalizar.addEventListener('click', ()=>runAnalyze(false));
 
 /*  Entity table  */
 function renderTable(grouped){
@@ -1081,9 +1108,31 @@ function labelForSpan(span){
     return '';
 }
 function scrollTo(span){
-    const lh=Math.max(span.offsetHeight||18,18);
-    waEditor.scrollTo({top:Math.max(0,span.offsetTop-lh),behavior:'smooth'});
-    setTimeout(()=>{ waEditor.focus(); try{ const r=document.createRange(),s=window.getSelection(); r.setStartAfter(span); r.collapse(true); s.removeAllRanges(); s.addRange(r); }catch{} },120);
+    const cRect = waEditor.getBoundingClientRect();
+    const sRect = span.getBoundingClientRect();
+    const pt    = parseFloat(getComputedStyle(waEditor).paddingTop) || 0;
+
+    if (waEditor.scrollHeight > waEditor.clientHeight + 1) {
+        // waEditor is the scroll container — position span at its top content edge.
+        // Math: new scrollTop = old + (span viewport-y − editor viewport-y) − paddingTop
+        // Result: span lands at (cRect.top + pt) in the viewport (first content line).
+        waEditor.scrollTo({
+            top: Math.max(0, waEditor.scrollTop + (sRect.top - cRect.top) - pt),
+            behavior: 'smooth'
+        });
+    } else {
+        // Window is the scroll container (short document).
+        // Position span just below the fixed topbar.
+        const topbarEl = document.getElementById('topbar');
+        const topbarH  = topbarEl ? topbarEl.offsetHeight : 0;
+        window.scrollTo({
+            top: Math.max(0, window.scrollY + sRect.top - topbarH - pt),
+            behavior: 'smooth'
+        });
+    }
+    // NOTE: the previous setTimeout(focus/selection, 120) was removed.
+    // waEditor.focus() at 120 ms was triggering a browser "scroll-to-caret" that
+    // overrode and cancelled the smooth scroll animation (which takes ~400 ms).
 }
 function flash(span,variants){
     if(lastFlash&&lastFlash!==span) lastFlash.classList.remove('entity-flash');
@@ -1273,74 +1322,71 @@ document.addEventListener('contextmenu',e=>{
         const sel=window.getSelection();
         const savedRange = sel&&sel.rangeCount>0 ? sel.getRangeAt(0).cloneRange() : null;
         const pv=selText.length>38?selText.slice(0,38)+'…':selText;
-        openCtx(e.clientX,e.clientY,`
-            <div class="ctx-head">Texto seleccionado</div>
-            <div class="ctx-preview">"${esc(pv)}"</div><hr>
-            <button data-a="wl"><i class="fas fa-list-check me-2 text-success"></i>Agregar a Whitelist</button>
-            <button data-a="bl"><i class="fas fa-ban me-2 text-danger"></i>Agregar a Blacklist</button>
-            <button data-a="ent"><i class="fas fa-tag me-2 text-primary"></i>Agregar como entidad…</button>
-        `);
-        ctx.querySelector('[data-a="wl"]').addEventListener('click',async ev=>{
-            ev.stopPropagation(); const btn=ev.currentTarget; btn.classList.add('loading'); btn.textContent=' Guardando';
-            try{ const r=await apiFetch('{{ route("pdf-analyzer.add-whitelist") }}',{term:selText,entity_type:null}); const d=await r.json(); if(!r.ok||!d.success) throw new Error(d.message||'Error'); toast(d.message,'s'); }
-            catch(err){ toast(' '+err.message,'e'); } finally{ closeCtx(); }
-        },{once:true});
-        ctx.querySelector('[data-a="bl"]').addEventListener('click',async ev=>{
-            ev.stopPropagation(); const btn=ev.currentTarget; btn.classList.add('loading'); btn.textContent=' Guardando';
-            try{ const r=await apiFetch('{{ route("pdf-analyzer.add-blacklist") }}',{term:selText,entity_type:null}); const d=await r.json(); if(!r.ok||!d.success) throw new Error(d.message||'Error'); toast(d.message,'s'); }
-            catch(err){ toast(' '+err.message,'e'); } finally{ closeCtx(); }
-        },{once:true});
-        ctx.querySelector('[data-a="ent"]').addEventListener('click', ev=>{
-            ev.stopPropagation();
-            // Replace ctx content with entity type picker
-            const typeBtns = ENTITY_DEFS.map(d=>
-                `<button class="ctx-type-opt" data-code="${d.code}">`+
-                `<span class="ctx-type-dot" style="background:${EC[d.code]||d.color||'#ddd'};"></span>${d.label}</button>`
-            ).join('');
-            ctx.innerHTML=
-                `<div class="ctx-head">Tipo de entidad</div>`+
-                `<div class="ctx-preview">"${esc(pv)}"</div><hr>`+
-                `<div class="ctx-type-grid">${typeBtns}</div>`;
-            // Reposition in case size changed
-            const mw=ctx.offsetWidth||220, mh=ctx.offsetHeight||160;
-            const cx=Math.min(parseInt(ctx.style.left),window.innerWidth-mw-8);
-            const cy=Math.min(parseInt(ctx.style.top),window.innerHeight-mh-8);
-            ctx.style.left=cx+'px'; ctx.style.top=cy+'px';
 
-            ctx.querySelectorAll('.ctx-type-opt').forEach(btn=>{
-                btn.addEventListener('click', ev2=>{
-                    ev2.stopPropagation();
-                    const code=btn.dataset.code;
-                    const def=ENTITY_DEFS.find(x=>x.code===code);
-                    if(!def||!savedRange) { closeCtx(); return; }
-                    const color=EC[code]||'#ddd';
-                    // Wrap the saved range with an entity span
+        // For free (non-entity) selections: only offer "Agregar como entidad"
+        // which leads to the type picker, saves to whitelist, and highlights all occurrences.
+        const typeBtns = ENTITY_DEFS.map(d=>
+            `<button class="ctx-type-opt" data-code="${d.code}">`+
+            `<span class="ctx-type-dot" style="background:${EC[d.code]||'#ddd'};"></span>${d.label}</button>`
+        ).join('');
+        openCtx(e.clientX,e.clientY,
+            `<div class="ctx-head">Texto seleccionado</div>`+
+            `<div class="ctx-preview">"${esc(pv)}"</div><hr>`+
+            `<div style="font-size:.72rem;color:var(--muted-color);padding:.1rem .2rem .35rem;">Agregar como entidad:</div>`+
+            `<div class="ctx-type-grid">${typeBtns}</div>`
+        );
+        ctx.querySelectorAll('.ctx-type-opt').forEach(btn=>{
+            btn.addEventListener('click', async ev=>{
+                ev.stopPropagation();
+                const code=btn.dataset.code;
+                const def=ENTITY_DEFS.find(x=>x.code===code);
+                if(!def||!savedRange){ closeCtx(); return; }
+                const color=EC[code]||'#ddd';
+
+                // 1. Wrap the saved range in a colored entity span
+                let tagged=false;
+                try{
+                    const span=document.createElement('span');
+                    span.className=`entity ${def.cls}`;
+                    span.dataset.label=code;
+                    span.title=code;
+                    span.style.background=color;
+                    savedRange.surroundContents(span);
+                    tagged=true;
+                } catch(_){
                     try{
                         const span=document.createElement('span');
                         span.className=`entity ${def.cls}`;
                         span.dataset.label=code;
                         span.title=code;
                         span.style.background=color;
-                        savedRange.surroundContents(span);
-                    } catch(_){
-                        // surroundContents fails if range crosses elements → use extract+wrap
-                        try{
-                            const span=document.createElement('span');
-                            span.className=`entity ${def.cls}`;
-                            span.dataset.label=code;
-                            span.title=code;
-                            span.style.background=color;
-                            span.appendChild(savedRange.extractContents());
-                            savedRange.insertNode(span);
-                        } catch(e2){ toast('No se pudo etiquetar el texto seleccionado.','e'); closeCtx(); return; }
-                    }
-                    // Add to entity table
-                    addManualEntityToTable(selText, code);
-                    closeCtx();
-                    toast(`"${selText.length>30?selText.slice(0,30)+'…':selText}" etiquetado como ${def.label}.`,'s');
-                },{once:true});
-            });
-        },{once:true});
+                        span.appendChild(savedRange.extractContents());
+                        savedRange.insertNode(span);
+                        tagged=true;
+                    } catch(e2){ toast('No se pudo etiquetar el texto seleccionado.','e'); closeCtx(); return; }
+                }
+
+                // 2. Add to entity panel
+                if(tagged) addManualEntityToTable(selText, code);
+
+                closeCtx();
+
+                // 3. Show progress spinner in text panel header
+                if(reanalyzeSpin) reanalyzeSpin.style.display='inline-flex';
+
+                // 4. Save to whitelist DB with the chosen entity type
+                try{
+                    const r=await apiFetch('{{ route("pdf-analyzer.add-whitelist") }}',{term:selText,entity_type:code});
+                    const d=await r.json();
+                    if(!r.ok||!d.success) throw new Error(d.message||'Error al guardar en whitelist');
+                } catch(wlErr){
+                    toast(`Whitelist: ${wlErr.message}`,'i');
+                }
+
+                // 5. Re-analyze so ALL occurrences are highlighted (whitelist priority enforced)
+                await runAnalyze(true);
+            },{once:true});
+        });
         e.stopPropagation(); return;
     }
 

@@ -323,6 +323,13 @@
                 <i class="fas fa-triangle-exclamation mt-1 flex-shrink-0"></i>
                 <span><strong>Modo desarrollo activo.</strong> Ingresá con cualquier email registrado. La contraseña no es obligatoria.</span>
             </div>
+            <div style="background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.18);border-radius:10px;padding:.6rem .9rem;margin-bottom:1rem;font-size:.82rem;color:#0353a4;display:flex;align-items:center;gap:.6rem">
+                <i class="fas fa-user-shield" style="flex-shrink:0;font-size:1.05rem;color:rgba(59,130,246,.9)"></i>
+                <div>
+                    <strong>Credenciales de prueba:</strong>
+                    <div style="font-size:.85rem;color:var(--login-muted);margin-top:.15rem">Usuario: <strong>admin</strong> &nbsp;·&nbsp; Email: <strong>admin@alfa.local</strong></div>
+                </div>
+            </div>
             @endif
 
             <form method="POST" action="{{ route('login.post') }}">

@@ -147,6 +147,15 @@ _JUDICIAL_NOISE_RAW: list[str] = [
     "secretaria", "secretario", "ministerio",
     "ciudad", "provincia", "nacion", "republica", "estado",
     "instancia", "grado", "fuero", "jurisdiccion", "competencia",
+    # Roles de partes procesales — cuando preceden a un nombre forman un span MISC erroneo
+    "acusado", "acusada", "imputado", "imputada",
+    "procesado", "procesada", "condenado", "condenada",
+    "querellado", "querellada", "querellante",
+    "denunciado", "denunciada", "denunciante",
+    "detenido", "detenida", "arrestado", "arrestada",
+    "testigo", "perito", "perita", "oficial",
+    "senor", "senora", "senores", "don", "dona",
+    "licenciado", "licenciada", "doctor", "doctora", "dr", "dra",
     # Abreviaturas
     "art", "arts", "inc", "ley", "dec", "res", "cfr", "idem",
     # Meses sueltos
@@ -200,6 +209,14 @@ def is_noise_entity(ent: Any) -> bool:
     if _norm(tokens[0].text) in JUDICIAL_NOISE:
         return True
 
+    # 6. MISC con primer token DET/PRON/ADP + segundo token de ruido judicial
+    #    Captura "El acusado Juan Garcia", "La imputada Maria", "El senor Lopez"
+    #    que spaCy etiqueta como MISC cuando deberia detectar solo el nombre.
+    #    El primer token es un articulo/preposicion que "envuelve" el nombre.
+    if label == "MISC" and len(tokens) >= 2:
+        if tokens[0].pos_ in ("DET", "PRON") and _norm(tokens[1].text) in JUDICIAL_NOISE:
+            return True
+
     return False
 
 
@@ -218,7 +235,7 @@ def _span_tag(text: str, css_class: str, label: str) -> str:
     """Envuelve texto en un <span> con la clase de entidad."""
     safe = html_module.escape(text)
     return (
-        f'<span class="entity {css_class}" data-label="{label}" title="{label}">'
+        f'<span class="entity {css_class}" data-label="{label}">'
         f'{safe}</span>'
     )
 
@@ -244,16 +261,43 @@ def build_annotated_html(text: str, spans: list[dict[str, Any]]) -> str:
     return "".join(result)
 
 
+# Prioridad de tipos de entidad: menor número = mayor prioridad.
+# PER siempre gana sobre MISC cuando hay solapamiento.
+_LABEL_PRIORITY: dict[str, int] = {
+    "PER": 1, "PERSON": 1,
+    "DNI": 2, "EMAIL": 2, "PHONE": 2,
+    "ORG": 3, "LOC": 3, "GPE": 3,
+    "DATE": 4,
+    "MISC": 5,
+}
+
+
 def remove_overlaps(spans: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Elimina spans solapados, priorizando el de mayor longitud."""
-    sorted_spans = sorted(spans, key=lambda s: (s["start"], -(s["end"] - s["start"])))
-    clean: list[dict] = []
-    last_end = -1
+    """Elimina spans solapados priorizando por tipo (PER > ORG/LOC > DATE > MISC)
+    y luego por longitud. Los spans de la whitelist tienen prioridad máxima."""
+    if not spans:
+        return []
+
+    # Ordenar: primero por prioridad de tipo (menor = gana), luego por longitud desc
+    def _sort_key(s: dict) -> tuple:
+        priority = _LABEL_PRIORITY.get(s.get("label", ""), 5)
+        length = -(s["end"] - s["start"])  # negativo: más largo gana si mismo tipo
+        return (priority, s["start"], length)
+
+    sorted_spans = sorted(spans, key=_sort_key)
+
+    # Greedy: aceptar spans en orden de prioridad, descartando los que solapan
+    accepted: list[dict] = []
+    occupied: list[tuple[int, int]] = []
+
     for s in sorted_spans:
-        if s["start"] >= last_end:
-            clean.append(s)
-            last_end = s["end"]
-    return clean
+        start, end = s["start"], s["end"]
+        if not any(start < ae and end > as_ for as_, ae in occupied):
+            accepted.append(s)
+            occupied.append((start, end))
+
+    # Devolver en orden de posición para construir el HTML correctamente
+    return sorted(accepted, key=lambda s: s["start"])
 
 
 # ── Endpoint principal ────────────────────────────────────────────────────────

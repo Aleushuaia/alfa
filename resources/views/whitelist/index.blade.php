@@ -166,7 +166,6 @@ if (!function_exists('_ecTextColor')) {
                                     <th>Tipo sugerido</th>
                                     <th>Agregado por</th>
                                     <th>Fecha</th>
-                                    <th>Estado</th>
                                     <th class="text-center" style="width:70px">Eliminar</th>
                                 </tr>
                             </thead>
@@ -193,13 +192,6 @@ if (!function_exists('_ecTextColor')) {
                                     <td class="text-muted">{{ $entry->added_by ?? '—' }}</td>
                                     <td class="text-muted" style="white-space:nowrap;">
                                         {{ $entry->created_at ? $entry->created_at->format('d/m/Y H:i') : '—' }}
-                                    </td>
-                                    <td>
-                                        @if($entry->active)
-                                            <span class="badge bg-success-subtle text-success border border-success-subtle">Activa</span>
-                                        @else
-                                            <span class="badge bg-secondary-subtle text-secondary border">Inactiva</span>
-                                        @endif
                                     </td>
                                     <td class="text-center">
                                         <button class="btn btn-outline-danger btn-delete-entry"

@@ -842,6 +842,46 @@ class WordAnonymizerController extends Controller
         return ['html' => $html, 'entities' => array_values($entities)];
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // normalizeForMatch + buildFlexiblePattern  — Helpers de matching tolerante
+    //   a mayúsculas, diacríticos y espacios. Idénticos al PdfAnalyzerController.
+    // ─────────────────────────────────────────────────────────────────────────
+    private static function normalizeForMatch(string $s): string
+    {
+        if (class_exists('Normalizer')) {
+            $s = \Normalizer::normalize($s, \Normalizer::FORM_KD) ?: $s;
+        }
+        $s = preg_replace('/\p{M}/u', '', $s);
+        $s = mb_strtolower($s);
+        return trim((string) preg_replace('/\s+/u', ' ', $s));
+    }
+
+    private static function buildFlexiblePattern(string $term): string
+    {
+        static $ACCENT_MAP = [
+            'a' => 'aáàâãäåā', 'e' => 'eéèêëē', 'i' => 'iíìîïī',
+            'o' => 'oóòôõöø',  'u' => 'uúùûüū', 'n' => 'nñ',
+            'c' => 'cç',       'y' => 'yý',      's' => 'sśš',
+            'z' => 'zźž',      'l' => 'lł',
+        ];
+
+        $normalized   = self::normalizeForMatch($term);
+        $wordPatterns = [];
+
+        foreach (explode(' ', $normalized) as $word) {
+            if ($word === '') continue;
+            $charPat = '';
+            foreach (preg_split('//u', $word, -1, PREG_SPLIT_NO_EMPTY) as $char) {
+                $charPat .= isset($ACCENT_MAP[$char])
+                    ? '[' . $ACCENT_MAP[$char] . ']'
+                    : preg_quote($char, '/');
+            }
+            $wordPatterns[] = $charPat;
+        }
+
+        return implode('\s+', $wordPatterns);
+    }
+
     private function filterEntitiesAndHtml(array $entities, string $html): array
     {
         $blacklist = $this->getActiveBlacklist();
@@ -866,17 +906,25 @@ class WordAnonymizerController extends Controller
             $matchMode     = $entry['match_mode'] ?? 'exact';
 
             $escapedHtmlTerm = htmlspecialchars($term, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-            $flags           = $caseSensitive ? 'u' : 'iu';
 
-            // Build the inner-content pattern based on match mode
-            if ($matchMode === 'contains') {
-                $innerPattern = '[^<]*' . preg_quote($escapedHtmlTerm, '/') . '[^<]*';
-            } elseif ($matchMode === 'regex') {
-                // Treat term as a raw regex fragment; wrap with non-tag chars
+            if ($matchMode === 'regex') {
+                // Raw regex: no modificar, el usuario define el patrón
                 $innerPattern = '[^<]*(?:' . $term . ')[^<]*';
+                $flags        = $caseSensitive ? 'u' : 'iu';
+            } elseif ($caseSensitive) {
+                // Sensible al caso: solo espacios flexibles
+                $wordParts   = preg_split('/\s+/u', trim($term), -1, PREG_SPLIT_NO_EMPTY);
+                $termPattern = implode('\s+', array_map(
+                    fn($w) => preg_quote(htmlspecialchars($w, ENT_QUOTES | ENT_HTML5, 'UTF-8'), '/'),
+                    $wordParts
+                ));
+                $innerPattern = $matchMode === 'contains' ? '[^<]*' . $termPattern . '[^<]*' : '\s*' . $termPattern . '\s*';
+                $flags        = 'u';
             } else {
-                // exact (default)
-                $innerPattern = '\s*' . preg_quote($escapedHtmlTerm, '/') . '\s*';
+                // Insensible a acentos + mayúsculas + espacios extra
+                $termPattern  = self::buildFlexiblePattern($term);
+                $innerPattern = $matchMode === 'contains' ? '[^<]*' . $termPattern . '[^<]*' : '\s*' . $termPattern . '\s*';
+                $flags        = 'iu';
             }
 
             if ($entityType) {
@@ -906,24 +954,28 @@ class WordAnonymizerController extends Controller
         $haystack = trim($entityText);
         $needle   = trim($term);
 
-        if ($matchMode === 'contains') {
-            if ($caseSensitive) {
-                return str_contains($haystack, $needle);
-            }
-            return str_contains(mb_strtolower($haystack), mb_strtolower($needle));
-        }
-
         if ($matchMode === 'regex') {
             $flags   = $caseSensitive ? 'u' : 'iu';
             $pattern = '/' . $needle . '/' . $flags;
             return (bool) @preg_match($pattern, $haystack);
         }
 
-        // Default: exact
         if ($caseSensitive) {
-            return $needle === $haystack;
+            // Sensible al caso: solo normalizar espacios
+            $normHaystack = trim((string) preg_replace('/\s+/u', ' ', $haystack));
+            $normNeedle   = trim((string) preg_replace('/\s+/u', ' ', $needle));
+            return $matchMode === 'contains'
+                ? str_contains($normHaystack, $normNeedle)
+                : $normNeedle === $normHaystack;
         }
-        return mb_strtolower($needle) === mb_strtolower($haystack);
+
+        // Default: insensible a acentos + mayúsculas + espacios extra
+        $normHaystack = self::normalizeForMatch($haystack);
+        $normNeedle   = self::normalizeForMatch($needle);
+
+        return $matchMode === 'contains'
+            ? str_contains($normHaystack, $normNeedle)
+            : $normNeedle === $normHaystack;
     }
 
     private function buildGroupedEntities(array $entities): array
@@ -931,12 +983,7 @@ class WordAnonymizerController extends Controller
         $grouped = [];
         $normMap = [];
 
-        $normalize = static function (string $s): string {
-            $s = mb_strtolower(trim($s));
-            $s = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $s) ?: $s;
-            $s = preg_replace('/[^a-z0-9\s]/i', ' ', $s);
-            return trim((string) preg_replace('/\s+/', ' ', $s));
-        };
+        $normalize = static fn(string $s): string => self::normalizeForMatch($s);
 
         foreach ($entities as $ent) {
             $text  = trim($ent['text'] ?? '');
@@ -1000,38 +1047,142 @@ class WordAnonymizerController extends Controller
     private function injectWhitelistEntities(array $entities, string $html, string $originalText): array
     {
         $whitelist = $this->getActiveWhitelist();
-
         if (empty($whitelist)) {
             return ['entities' => $entities, 'html' => $html];
         }
 
-        $existingTexts = array_map(
-            fn($e) => mb_strtolower(trim($e['text'] ?? '')),
-            $entities
-        );
+        // Lower number = higher priority
+        $typePriority = [
+            'PER' => 1, 'PERSON' => 1,
+            'DNI' => 2, 'EMAIL' => 2, 'PHONE' => 2,
+            'ORG' => 3, 'LOC' => 3, 'GPE' => 3,
+            'DATE' => 4,
+            'MISC' => 5,
+        ];
 
+        $normOriginal = self::normalizeForMatch($originalText);
+
+        // Index existing entities by normalized text
+        $existingByNorm = [];
+        foreach ($entities as $i => $ent) {
+            $norm = self::normalizeForMatch($ent['text'] ?? '');
+            if ($norm !== '') {
+                $existingByNorm[$norm][] = $i;
+            }
+        }
+
+        // All whitelist terms to highlight — whitelist always wins
         $toInject = [];
 
         foreach ($whitelist as $entry) {
             $term = trim($entry['term'] ?? '');
-            if ($term === '' || mb_stripos($originalText, $term) === false) {
-                continue;
-            }
-            if (in_array(mb_strtolower($term), $existingTexts, true)) {
+            if ($term === '' || mb_strpos($normOriginal, self::normalizeForMatch($term)) === false) {
                 continue;
             }
 
-            $entityType      = strtoupper($entry['entity_type'] ?? 'MISC') ?: 'MISC';
-            $cssClass        = $this->entityTypeToClass($entityType);
-            $entities[]      = ['text' => $term, 'label' => $entityType, 'start' => null, 'end' => null];
-            $existingTexts[] = mb_strtolower($term);
-            $toInject[]      = ['term' => $term, 'type' => $entityType, 'class' => $cssClass];
+            $entityType = strtoupper($entry['entity_type'] ?? 'MISC') ?: 'MISC';
+            $wlPriority = $typePriority[$entityType] ?? 5;
+            $normTerm   = self::normalizeForMatch($term);
+            $newClass   = $this->entityTypeToClass($entityType);
+            $textPat    = self::buildFlexiblePattern($term);
+
+            if (isset($existingByNorm[$normTerm])) {
+                // NLP detected the exact same term — update type if whitelist has higher priority
+                // Mark as whitelist so the strippedNorms cleanup does not accidentally remove it
+                foreach ($existingByNorm[$normTerm] as $idx) {
+                    $entities[$idx]['_whitelist'] = true;
+                    $oldLabel    = $entities[$idx]['label'] ?? '';
+                    $oldPriority = $typePriority[$oldLabel] ?? 5;
+
+                    if ($wlPriority < $oldPriority) {
+                        $entities[$idx]['label'] = $entityType;
+                        $pattern = '/<span\b[^>]*\bdata-label="' . preg_quote($oldLabel, '/') . '"[^>]*>\s*(' . $textPat . ')\s*<\/span>/iu';
+                        $html    = preg_replace(
+                            $pattern,
+                            '<span class="entity ' . $newClass . '" data-label="' . $entityType . '">$1</span>',
+                            $html
+                        );
+                    }
+                }
+            } else {
+                // Not detected by NLP — register as new entity
+                $entities[]                = ['text' => $term, 'label' => $entityType, 'start' => null, 'end' => null, '_whitelist' => true];
+                $existingByNorm[$normTerm] = [count($entities) - 1];
+            }
+
+            // Always add to injection list: whitelist priority is absolute
+            $toInject[] = ['term' => $term, 'type' => $entityType, 'class' => $newClass];
         }
 
         if (empty($toInject)) {
-            return ['entities' => $entities, 'html' => $html];
+            return ['entities' => array_values($entities), 'html' => $html];
         }
 
+        // ── Priority pre-pass: strip entity spans that overlap with a whitelist term ─────
+        // Handles two cases:
+        //   A) The span text CONTAINS the whitelist term as a substring
+        //      e.g. NLP span "Juan Carlos García" contains whitelist "Juan Carlos"
+        //   B) The whitelist term CROSSES a span boundary
+        //      e.g. text has "FRANCO, " before the span and the span contains
+        //      "HÉCTOR S/ ABUSO SEXUAL" — whitelist term is "FRANCO, HÉCTOR".
+        //      The NLP span absorbs "HÉCTOR", splitting the whitelist term.
+        // In both cases the span is stripped so the injection pass can re-highlight
+        // exactly the whitelist term. Exact-match spans are left untouched.
+        $strippedNorms = [];
+        foreach ($toInject as $inj) {
+            $textPat  = self::buildFlexiblePattern($inj['term']);
+            $normTerm = self::normalizeForMatch($inj['term']);
+
+            // The regex captures: (text before span)(span inner text)
+            // [^<]* matches the text node immediately preceding the span tag.
+            $html = preg_replace_callback(
+                '/([^<]*)<span\b([^>]*class="entity[^"]*"[^>]*)>([^<]+)<\/span>/iu',
+                function ($m) use ($textPat, $normTerm, &$strippedNorms) {
+                    $before    = $m[1]; // text node immediately before the span
+                    $inner     = $m[3]; // text inside the span
+                    $normInner = self::normalizeForMatch($inner);
+
+                    // Case A: whitelist term fully inside the span (not exact match)
+                    if ($normInner !== $normTerm && preg_match('/' . $textPat . '/iu', $inner)) {
+                        $strippedNorms[] = $normInner;
+                        return $before . $inner; // strip span wrapper
+                    }
+
+                    // Case B: whitelist term crosses the span boundary
+                    // (part in $before text node, part inside the span)
+                    $combined = $before . $inner;
+                    if (
+                        preg_match('/' . $textPat . '/iu', $combined) &&
+                        !preg_match('/' . $textPat . '/iu', $inner) &&
+                        !preg_match('/' . $textPat . '/iu', $before)
+                    ) {
+                        $strippedNorms[] = $normInner;
+                        return $before . $inner; // strip span, reunite text
+                    }
+
+                    return $m[0]; // unchanged
+                },
+                $html
+            );
+        }
+
+        // Remove entities whose spans were stripped (whitelist entity replaced them).
+        // Whitelist-matched entities (_whitelist flag) are always preserved because
+        // the injection pass will re-highlight them even if their NLP span was stripped.
+        if (!empty($strippedNorms)) {
+            $entities = array_values(array_filter(
+                $entities,
+                fn($e) => !empty($e['_whitelist']) || !in_array(self::normalizeForMatch($e['text'] ?? ''), $strippedNorms, true)
+            ));
+        }
+
+        // Strip the internal _whitelist flag before returning
+        foreach ($entities as &$e) {
+            unset($e['_whitelist']);
+        }
+        unset($e);
+
+        // ── Inject whitelist terms into plain-text nodes (outside entity spans) ──────
         $parts     = preg_split('/(<[^>]+>)/s', $html, -1, PREG_SPLIT_DELIM_CAPTURE);
         $result    = [];
         $spanDepth = 0;
@@ -1048,7 +1199,7 @@ class WordAnonymizerController extends Controller
                 if ($spanDepth === 0 && $part !== '') {
                     foreach ($toInject as $inj) {
                         $part = preg_replace_callback(
-                            '/(' . preg_quote($inj['term'], '/') . ')/iu',
+                            '/(' . self::buildFlexiblePattern($inj['term']) . ')/iu',
                             fn($m) => '<span class="entity ' . $inj['class'] . '" data-label="' . $inj['type'] . '">' . $m[0] . '</span>',
                             $part
                         );
@@ -1058,7 +1209,36 @@ class WordAnonymizerController extends Controller
             }
         }
 
-        return ['entities' => $entities, 'html' => implode('', $result)];
+        $finalHtml = implode('', $result);
+
+        // Rebuild the entities list directly from the painted HTML spans.
+        // This is the only way to get an accurate count: Phase 3 injection may
+        // have created spans for accent variants (e.g. "Alvarez" without accent)
+        // that NLP missed, and those spans are not reflected in the tracked
+        // $entities array.  By reading spans from the final HTML we guarantee
+        // that buildGroupedEntities() counts every painted occurrence, regardless
+        // of whether it came from NLP, the whitelist, or the injection pass.
+        $entities = [];
+        preg_match_all(
+            '/<span\b[^>]*\bclass="entity[^"]*"[^>]*\bdata-label="([^"]+)"[^>]*>([^<]*)<\/span>/iu',
+            $finalHtml,
+            $htmlMatches,
+            PREG_SET_ORDER
+        );
+        foreach ($htmlMatches as $hm) {
+            $spanText = html_entity_decode($hm[2], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            if (trim($spanText) === '') {
+                continue;
+            }
+            $entities[] = [
+                'text'  => trim($spanText),
+                'label' => $hm[1],
+                'start' => null,
+                'end'   => null,
+            ];
+        }
+
+        return ['entities' => $entities, 'html' => $finalHtml];
     }
 
     // ─────────────────────────────────────────────────────────────────────────

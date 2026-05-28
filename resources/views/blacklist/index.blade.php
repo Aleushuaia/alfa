@@ -164,10 +164,8 @@ if (!function_exists('_ecTextColor')) {
                                 <tr>
                                     <th style="width:38%">Término</th>
                                     <th>Tipo</th>
-                                    <th>Modo</th>
                                     <th>Agregado por</th>
                                     <th>Fecha</th>
-                                    <th>Estado</th>
                                     <th class="text-center" style="width:70px">Eliminar</th>
                                 </tr>
                             </thead>
@@ -191,19 +189,9 @@ if (!function_exists('_ecTextColor')) {
                                             <span class="text-muted" style="font-size:.8rem;">Todos</span>
                                         @endif
                                     </td>
-                                    <td>
-                                        <span class="badge badge-type bg-light text-dark border">{{ $entry->match_mode ?? 'exact' }}</span>
-                                    </td>
                                     <td class="text-muted">{{ $entry->added_by ?? '—' }}</td>
                                     <td class="text-muted" style="white-space:nowrap;">
                                         {{ $entry->created_at ? $entry->created_at->format('d/m/Y H:i') : '—' }}
-                                    </td>
-                                    <td>
-                                        @if($entry->active)
-                                            <span class="badge bg-success-subtle text-success border border-success-subtle">Activa</span>
-                                        @else
-                                            <span class="badge bg-secondary-subtle text-secondary border">Inactiva</span>
-                                        @endif
                                     </td>
                                     <td class="text-center">
                                         <button class="btn btn-outline-danger btn-delete-entry"
