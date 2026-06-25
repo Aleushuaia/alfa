@@ -1,0 +1,20 @@
+stages:
+  - security        # escaneos
+  - upload          # subida a DefectDojo
+
+include:
+  - component: $CI_SERVER_FQDN/infraestructura/trivy-security-components/sast@1.5.0
+    inputs:
+      stage: security
+      upload_stage: upload
+      product_name: "selknam-padron"
+      engagement_name: "beta"
+      dojo_upload_if: '$DOJO_HOST && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+
+  - component: $CI_SERVER_FQDN/infraestructura/trivy-security-components/filesystem-scanning@1.5.0
+    inputs:
+      stage: security
+      upload_stage: upload
+      product_name: "selknam-padron"
+      engagement_name: "beta"
+      dojo_upload_if: '$DOJO_HOST && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
