@@ -7,7 +7,7 @@ include:
     inputs:
       stage: security
       upload_stage: upload
-      product_name: "selknam-padron"
+      product_name: "alfa"
       engagement_name: "beta"
       dojo_upload_if: '$DOJO_HOST && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
 
@@ -15,6 +15,6 @@ include:
     inputs:
       stage: security
       upload_stage: upload
-      product_name: "selknam-padron"
+      product_name: "alfa"
       engagement_name: "beta"
       dojo_upload_if: '$DOJO_HOST && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
