@@ -17,6 +17,8 @@ use App\Http\Controllers\UserManagementController;
 use App\Http\Controllers\PromptController;
 use App\Http\Controllers\SujetosProcesalesController;
 use App\Http\Controllers\WordAnonymizerController;
+use App\Http\Controllers\MenuPermissionsController;
+use App\Http\Controllers\PdfToolsController;
 use Illuminate\Support\Facades\Route;
 
 // ── Autenticación ─────────────────────────────────────────────────────────────
@@ -92,6 +94,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/ocr-extractor', [OcrExtractorController::class, 'index'])->name('pdf-extractor.index');
     Route::post('/ocr-extractor/extract', [OcrExtractorController::class, 'extract'])->name('pdf-extractor.extract');
 
+    // ── Herramientas PDF (OCR + Compresión) ──────────────────────────────
+    Route::middleware('can:menu.herramientas_pdf')->prefix('pdf-tools')->name('pdf-tools.')->group(function () {
+        Route::get('/',          [PdfToolsController::class, 'index'])->name('index');
+        Route::post('/ocr',      [PdfToolsController::class, 'ocr'])->name('ocr');
+        Route::post('/compress', [PdfToolsController::class, 'compress'])->name('compress');
+    });
+
     // ── Anonimizador de Word ──────────────────────────────────────────────
     Route::get('/word-anonymizer', [WordAnonymizerController::class, 'index'])->name('word-anonymizer.index');
     Route::post('/word-anonymizer/process', [WordAnonymizerController::class, 'process'])->name('word-anonymizer.process');
@@ -142,5 +151,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/prompts',            [PromptController::class, 'store'])->name('prompts.store');
         Route::put('/prompts/{prompt}',    [PromptController::class, 'update'])->name('prompts.update');
         Route::delete('/prompts/{prompt}', [PromptController::class, 'destroy'])->name('prompts.destroy');
+
+        // ── Permisos de Menú ─────────────────────────────────────────────
+        Route::get('/menu-permissions',  [MenuPermissionsController::class, 'index'])->name('menu-permissions.index');
+        Route::post('/menu-permissions', [MenuPermissionsController::class, 'update'])->name('menu-permissions.update');
     });
 });

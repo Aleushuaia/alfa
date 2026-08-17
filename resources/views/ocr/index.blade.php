@@ -334,7 +334,7 @@
             <div class="t-card-icon"><i class="fas fa-file-pdf"></i></div>
             <div>
                 <h5>Extractor de Texto OCR</h5>
-                <p>Cargá un PDF para extraer todo el texto con Tesseract</p>
+                <p>Cargá un PDF para extraer todo el texto</p>
             </div>
         </div>
 
@@ -370,7 +370,7 @@
             {{-- Barra de progreso --}}
             <div class="t-progress-wrap" id="progress-wrap">
                 <div class="t-progress-label">
-                    <span id="progress-label-text">Procesando con Tesseract OCR…</span>
+                    <span id="progress-label-text">Procesando OCR…</span>
                     <span></span>
                 </div>
                 <div class="t-progress-bar">
@@ -388,7 +388,7 @@
         <div class="mt-3 pt-3" style="border-top:1px solid var(--card-border);">
             <p class="mb-0" style="font-size:.75rem;color:var(--muted-color);">
                 <i class="fas fa-info-circle me-1" style="color:var(--accent);"></i>
-                Tesseract procesa cada página del PDF como imagen. El tiempo
+                El proceso analiza cada página del PDF como imagen. El tiempo
                 depende de la cantidad de páginas y la calidad del escaneo.
                 Tamaño máximo: <strong>50 MB</strong>.
             </p>

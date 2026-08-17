@@ -41,8 +41,11 @@ return [
 
     'debug' => (bool) env('APP_DEBUG', false),
 
-    // Login simplificado sin contraseña (SOLO modo desarrollo)
-    'dev_login' => (bool) env('APP_DEV_LOGIN', false),
+    // APP_MODE: 'DEV' | 'PROD'  — controla el comportamiento del login
+    'mode' => env('APP_MODE', 'PROD'),
+
+    // Login sin contraseña: activo solo cuando APP_MODE=DEV
+    'dev_login' => env('APP_MODE', 'PROD') === 'DEV',
 
     /*
     |--------------------------------------------------------------------------

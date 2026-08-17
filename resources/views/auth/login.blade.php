@@ -78,7 +78,81 @@
             margin-bottom: 2rem;
         }
 
-        .login-brand img {
+        .brand-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: .4rem;
+        }
+
+        .brand-avatar {
+            flex-shrink: 0;
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 2px solid rgba(59,130,246,.25);
+            box-shadow: 0 0 0 4px rgba(59,130,246,.08), 0 4px 14px rgba(0,0,0,.12);
+            background: var(--login-input-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .brand-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+
+        .brand-text {
+            text-align: left;
+        }
+
+        .brand-text h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1.2;
+        }
+
+        .brand-text p {
+            font-size: .82rem;
+            color: var(--login-muted);
+            margin: .2rem 0 0;
+        }
+
+        .mode-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: .35rem;
+            padding: .2rem .65rem;
+            border-radius: 20px;
+            font-size: .68rem;
+            font-weight: 700;
+            letter-spacing: .8px;
+            text-transform: uppercase;
+        }
+
+        .mode-badge.dev {
+            background: rgba(245,158,11,.12);
+            border: 1px solid rgba(245,158,11,.35);
+            color: #d97706;
+        }
+
+        .mode-badge.prod {
+            background: rgba(16,185,129,.1);
+            border: 1px solid rgba(16,185,129,.3);
+            color: #059669;
+        }
+
+        .login-brand > img {
             display: none;
         }
 
@@ -303,9 +377,20 @@
 
     <div class="login-container">
         <div class="login-brand">
-            <img src="{{ asset('alfa.png') }}" alt="Alfa">
-            <h1>Alfa</h1>
-            <p>colaborador inteligente</p>
+            <div class="brand-row">
+                <div class="brand-avatar">
+                    <img src="{{ asset('alfa.png') }}" alt="Alfa">
+                </div>
+                <div class="brand-text">
+                    <h1>Alfa</h1>
+                    <p>colaborador inteligente</p>
+                </div>
+            </div>
+            @if(config('app.mode') === 'DEV')
+                <span class="mode-badge dev"><i class="fas fa-code"></i> Modo desarrollo</span>
+            @else
+                <span class="mode-badge prod"><i class="fas fa-shield-halved"></i> Modo producción</span>
+            @endif
         </div>
 
         <div class="login-card">
@@ -318,7 +403,7 @@
                 </div>
             @endif
 
-            @if(config('app.dev_login'))
+            @if(config('app.mode') === 'DEV')
             <div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.35);border-radius:10px;padding:.65rem 1rem;margin-bottom:1.25rem;font-size:.82rem;color:#d97706;display:flex;align-items:flex-start;gap:.5rem">
                 <i class="fas fa-triangle-exclamation mt-1 flex-shrink-0"></i>
                 <span><strong>Modo desarrollo activo.</strong> Ingresá con cualquier email registrado. La contraseña no es obligatoria.</span>
@@ -349,7 +434,7 @@
                 <div class="form-group">
                     <label for="password">
                         Contraseña
-                        @if(config('app.dev_login'))
+                        @if(config('app.mode') === 'DEV')
                         <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--login-muted);font-size:.75rem">(opcional en modo dev)</span>
                         @endif
                     </label>
@@ -357,7 +442,7 @@
                         <i class="fas fa-key"></i>
                         <input type="password" id="password" name="password"
                                placeholder="••••••••"
-                               @if(!config('app.dev_login')) required @endif
+                               @if(config('app.mode') !== 'DEV') required @endif
                                autocomplete="current-password">
                     </div>
                 </div>

@@ -3,6 +3,9 @@
     Partial del sidebar del layout dashboard.
     Incluir con: @include('layouts.dashboard._sidebar')
 --}}
+@php
+    $isAdmin = auth()->check() && auth()->user()->hasRole('administrador');
+@endphp
 <aside id="sidebar">
     <a href="{{ route('pdf-analyzer.form') }}" class="sidebar-brand d-flex align-items-center gap-2">
         <div class="brand-icon">
@@ -15,8 +18,11 @@
     </a>
 
     <nav class="sidebar-nav py-2">
-        {{-- ── Procesamiento de Texto ── visible para todos los autenticados --}}
+
+        {{-- ── Procesamiento de Texto ────────────────────────────────────── --}}
+        @canany(['menu.pdf-extractor', 'menu.word-anonymizer', 'menu.herramientas_pdf'])
         <p class="nav-section-label">Procesamiento de Texto</p>
+        @can('menu.pdf-extractor')
         <a href="{{ route('pdf-extractor.index') }}"
            class="nav-link {{ request()->routeIs('pdf-extractor*') ? 'active' : '' }}"
            title=""
@@ -24,6 +30,8 @@
             <span class="nav-icon"><i class="fas fa-file-alt"></i></span>
             <span>Pdf de imagen a texto</span>
         </a>
+        @endcan
+        @can('menu.word-anonymizer')
         <a href="{{ route('word-anonymizer.index') }}"
            class="nav-link {{ request()->routeIs('word-anonymizer*') ? 'active' : '' }}"
            target="_blank"
@@ -32,9 +40,22 @@
             <span class="nav-icon"><i class="fas fa-file-word"></i></span>
             <span>Anonimizador</span>
         </a>
+        @endcan
+        @can('menu.herramientas_pdf')
+        <a href="{{ route('pdf-tools.index') }}"
+           class="nav-link {{ request()->routeIs('pdf-tools.*') ? 'active' : '' }}"
+           title=""
+           data-sidebar-tooltip="Herramientas PDF">
+            <span class="nav-icon"><i class="fas fa-file-pdf"></i></span>
+            <span>Herramientas PDF</span>
+        </a>
+        @endcan
+        @endcanany
 
-        {{-- ── Smart Tools ── visible para todos los autenticados --}}
+        {{-- ── Smart Tools ───────────────────────────────────────────────── --}}
+        @canany(['menu.transcripcion', 'menu.ollama', 'menu.sujetos-procesales'])
         <p class="nav-section-label mt-2">Smart Tools</p>
+        @can('menu.transcripcion')
         <a href="{{ route('transcripcion.index') }}"
            class="nav-link {{ request()->routeIs('transcripcion.*') ? 'active' : '' }}"
            title=""
@@ -42,6 +63,8 @@
             <span class="nav-icon"><i class="fas fa-microphone"></i></span>
             <span>Transcripciones</span>
         </a>
+        @endcan
+        @can('menu.ollama')
         <a href="{{ route('ollama.test') }}"
            class="nav-link {{ request()->routeIs('ollama.*') ? 'active' : '' }}"
            title=""
@@ -49,6 +72,8 @@
             <span class="nav-icon"><i class="fas fa-robot"></i></span>
             <span>Probar modelo de IA</span>
         </a>
+        @endcan
+        @can('menu.sujetos-procesales')
         <a href="{{ route('sujetos-procesales.index') }}"
            class="nav-link {{ request()->routeIs('sujetos-procesales.*') ? 'active' : '' }}"
            title=""
@@ -56,9 +81,13 @@
             <span class="nav-icon"><i class="fas fa-users"></i></span>
             <span>Extracción con IA</span>
         </a>
+        @endcan
+        @endcanany
 
-        {{-- ── Configuración ── visible para todos los autenticados --}}
+        {{-- ── Configuración ─────────────────────────────────────────────── --}}
+        @canany(['menu.blacklist', 'menu.whitelist', 'menu.entity-config', 'menu.theme-config'])
         <p class="nav-section-label mt-2">Configuración</p>
+        @can('menu.blacklist')
         <a href="{{ route('blacklist.index') }}"
            class="nav-link {{ request()->routeIs('blacklist.*') ? 'active' : '' }}"
            title=""
@@ -66,6 +95,8 @@
             <span class="nav-icon"><i class="fas fa-ban"></i></span>
             <span>Gestión de la Blacklist (omitidas)</span>
         </a>
+        @endcan
+        @can('menu.whitelist')
         <a href="{{ route('whitelist.index') }}"
            class="nav-link {{ request()->routeIs('whitelist.*') ? 'active' : '' }}"
            title=""
@@ -73,6 +104,8 @@
             <span class="nav-icon"><i class="fas fa-check-circle"></i></span>
             <span>Gestión de la Whitelist (agregadas)</span>
         </a>
+        @endcan
+        @can('menu.entity-config')
         <a href="{{ route('entity-config.index') }}"
            class="nav-link {{ request()->routeIs('entity-config.*') ? 'active' : '' }}"
            title=""
@@ -80,6 +113,8 @@
             <span class="nav-icon"><i class="fas fa-palette"></i></span>
             <span>Colores de Entidades</span>
         </a>
+        @endcan
+        @can('menu.theme-config')
         <a href="{{ route('theme-config.index') }}"
            class="nav-link {{ request()->routeIs('theme-config.*') ? 'active' : '' }}"
            title=""
@@ -87,9 +122,11 @@
             <span class="nav-icon"><i class="fas fa-swatchbook"></i></span>
             <span>Colores del tema</span>
         </a>
+        @endcan
+        @endcanany
 
-        {{-- ── Ajustes ── visible solo para administradores --}}
-        @if(auth()->check() && auth()->user()->hasRole('administrador'))
+        {{-- ── Ajustes ── visible solo para administradores ─────────────── --}}
+        @if($isAdmin)
         <p class="nav-section-label mt-2">Ajustes</p>
         <a href="{{ route('admin.users.index') }}"
            class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}"
@@ -119,10 +156,17 @@
             <span class="nav-icon"><i class="fas fa-file-code"></i></span>
             <span>Gestión de Prompts</span>
         </a>
+        <a href="{{ route('admin.menu-permissions.index') }}"
+           class="nav-link {{ request()->routeIs('admin.menu-permissions.*') ? 'active' : '' }}"
+           title=""
+           data-sidebar-tooltip="Permisos de Menú">
+            <span class="nav-icon"><i class="fas fa-shield-halved"></i></span>
+            <span>Permisos de Menú</span>
+        </a>
         @endif
 
-        {{-- ── Gestionar Unidad ── visible para administradores de unidad --}}
-        @if(auth()->check() && !auth()->user()->hasRole('administrador') && auth()->user()->unidadesAdministradas()->exists())
+        {{-- ── Gestionar Unidad ── visible para administradores de unidad ── --}}
+        @if(auth()->check() && !$isAdmin && auth()->user()->unidadesAdministradas()->exists())
         <p class="nav-section-label mt-2">Mi Unidad</p>
         <a href="{{ route('gestionar-unidad.index') }}"
            class="nav-link {{ request()->routeIs('gestionar-unidad.*') ? 'active' : '' }}"

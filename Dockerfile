@@ -22,6 +22,7 @@ RUN apk add --no-cache \
         libpq-dev \
         curl-dev \
         poppler-utils \
+        ghostscript \
         tesseract-ocr \
         tesseract-ocr-data-spa
 

@@ -1,0 +1,76 @@
+Resumen técnico del proyecto Alfa
+
+1. Descripción general
+- Alfa es una aplicación web basada en Laravel destinada a actuar como "colaborador inteligente" para procesamiento de documentos y tareas de IA (OCR, extracción de texto, anonimización, transcripción, extracción de entidades, pruebas LLM). Provee interfaz administrativa, gestión de roles/permisos, y varios microservicios para NLP/Whisper.
+
+2. Tecnologías y frameworks principales
+- Backend principal: Laravel (PHP) — ver composer.json: "laravel/framework": "^12.0".
+- Lenguaje PHP: objetivo en composer.json "php": "^8.2". Dockerfile usa imagen base "php:8.4-fpm-alpine".
+- Frontend: Vite, assets con Bootstrap 5, FontAwesome y AdminLTE; `vite` (vite ^7.0.7) y `laravel-vite-plugin`.
+- Sistema de colas/servicios: Supervisor (en Dockerfile) para gestionar procesos en contenedor.
+- Contenerización: Docker (Dockerfile y docker-compose.yml presentes). Nginx actúa como reverse proxy (nginx.conf) dentro de la imagen.
+
+3. Bibliotecas y dependencias clave
+- PHP (composer.json):
+  - laravel/framework ^12.0
+  - spatie/laravel-permission ^7.2 (gestión de roles y permisos)
+  - barryvdh/laravel-dompdf ^3.1 (generación PDF)
+  - phpoffice/phpword ^1.4 (generación DOCX)
+  - spatie/pdf-to-text ^1.53 (extracción de texto de PDFs)
+  - laravel/tinker, phpunit/phpunit ^11.5.3 (testing), y utilidades de desarrollo (pail, pint, sail, etc.)
+- JavaScript / CSS (package.json):
+  - bootstrap ^5.3.5
+  - @fortawesome/fontawesome-free ^6.7.2
+  - admin-lte ^4.0.0-rc5
+  - alpinejs ^3.14.8
+  - apexcharts ^4.7.0
+  - overlayscrollbars ^2.10.1
+  - axios (dev dep), vite ^7.0.7
+- Microservicios Python:
+  - nlp_service/requirements.txt: fastapi>=0.110.0, uvicorn[standard]>=0.29.0, spacy>=3.7.0
+  - whisper_service/requirements.txt: fastapi==0.115.6, uvicorn[standard]==0.32.1, python-multipart==0.0.20, ffmpeg-python==0.2.0, numpy<2
+  - Estos servicios corren con FastAPI/uvicorn y se comunican vía HTTP (probablemente desde PHP mediante requests HTTP).
+
+4. Arquitectura y componentes principales
+- Estructura (carpetas importantes):
+  - app/: código principal Laravel (Controllers, Models, Services, Repositories, Providers)
+  - resources/views/: vistas Blade (login, layouts, panel administrativo, etc.)
+  - database/migrations, seeders: migraciones y seeders (p. ej. menu_items y permisos de menú)
+  - public/: assets compilados (public/build si se compila con Vite)
+  - nlp_service/, whisper_service/: microservicios Python para NLP y transcripción
+  - docker/: scripts y datos para la base de datos y entorno
+
+- Gestión de menú y permisos:
+  - Se añadieron `menu_items` (tabla) y permisos `menu.{key}`; la app usa Spatie para asignar esos permisos a roles (p. ej. rol `administrador`).
+
+5. Infra y despliegue
+- Dockerfile preparado para instalar Nginx, Supervisor, extensiones PHP y herramientas (tesseract, poppler-utils, etc.).
+- Entrypoint y supervisord config proveídos. Exposición en puerto 8080 en la imagen.
+- Comandos útiles:
+  - Levantar: `docker compose up --build` (o `docker compose up -d --build`)
+  - Artisan: `php artisan migrate`, `php artisan db:seed --class=MenuItemsSeeder`, `php artisan view:clear`, `php artisan view:cache`
+  - Frontend: `npm install` y `npm run build` (Vite)
+
+6. Notas sobre versiones y compatibilidad
+- PHP: composer declara soporte para ^8.2; Dockerfile usa php:8.4-fpm-alpine (verificar coherencia con infraestructura).
+- Laravel: ^12.0 (se asume Laravel 12 mayor).
+- Paquetes Python: FastAPI y SpaCy en nlp_service; Whisper-service usa dependencias concretas (uvicorn 0.32.1, FastAPI 0.115.6).
+
+7. Seguridad y configuración
+- Gestión de roles y permisos con Spatie es la base para habilitar/ocultar entradas de menú y restricciones.
+- Variables de entorno: `.env` contiene `APP_MODE` y `APP_DEV_LOGIN` para controlar comportamiento de login (DEV vs PROD).
+- Se recomienda revisar `config/permission.php`, `config/app.php` y mantener `permission:cache-reset` tras cambios.
+
+8. Pruebas y calidad
+- PHPUnit configurado (phpunit ^11). Pint y otras herramientas de code-style están incluidas.
+
+9. Sugerencias de mantenimiento rápidas
+- Verificar que la versión de PHP en Docker coincide con la especificada en composer.json.
+- Mantener caches actualizados luego de cambios en vistas o permisos: `php artisan view:clear && php artisan view:cache` y `php artisan permission:cache-reset`.
+- Documentar contratos HTTP/JSON entre Laravel y microservicios Python (endpoints, timeouts, auth si aplica).
+
+10. Archivos relevantes
+- `composer.json`, `package.json`, `Dockerfile`, `docker-compose.yml`, `nginx.conf`, `supervisord.conf`, `resources/views/`, `app/`, `nlp_service/`, `whisper_service/`.
+
+---
+Generado automáticamente. Fecha: 2026-08-15
