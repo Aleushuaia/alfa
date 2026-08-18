@@ -34,7 +34,7 @@
         @can('menu.word-anonymizer')
         <a href="{{ route('word-anonymizer.index') }}"
            class="nav-link {{ request()->routeIs('word-anonymizer*') ? 'active' : '' }}"
-           target="_blank"
+           target="_blank" rel="noopener noreferrer"
            title=""
            data-sidebar-tooltip="Anonimizador">
             <span class="nav-icon"><i class="fas fa-file-word"></i></span>
