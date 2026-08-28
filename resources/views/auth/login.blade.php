@@ -146,12 +146,6 @@
             color: #d97706;
         }
 
-        .mode-badge.prod {
-            background: rgba(16,185,129,.1);
-            border: 1px solid rgba(16,185,129,.3);
-            color: #059669;
-        }
-
         .login-brand > img {
             display: none;
         }
@@ -388,8 +382,6 @@
             </div>
             @if(config('app.mode') === 'DEV')
                 <span class="mode-badge dev"><i class="fas fa-code"></i> Modo desarrollo</span>
-            @else
-                <span class="mode-badge prod"><i class="fas fa-shield-halved"></i> Modo producción</span>
             @endif
         </div>
 
