@@ -49,12 +49,7 @@ WORKDIR /var/www
 
 # Copiar manifiestos para aprovechar cache de capas
 COPY composer.json composer.lock* ./
-# Deshabilitar verificacion SSL de git/Composer (entorno con proxy corporativo
-# que inyecta certificado auto-firmado). Solo aplica durante el build.
-RUN git config --global http.sslVerify false \
- && composer config --global disable-tls true \
- && composer config --global secure-http false \
- && composer install \
+RUN composer install \
         --no-dev \
         --no-scripts \
         --no-autoloader \
