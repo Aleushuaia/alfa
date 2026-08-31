@@ -373,7 +373,7 @@
         <div class="login-brand">
             <div class="brand-row">
                 <div class="brand-avatar">
-                    <img src="{{ asset('alfa.png') }}" alt="Alfa">
+                    <img src="{{ secure_asset('alfa.png') }}" alt="Alfa">
                 </div>
                 <div class="brand-text">
                     <h1>Alfa</h1>
