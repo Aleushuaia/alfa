@@ -78,6 +78,34 @@ class UserManagementController extends Controller
     }
 
     /**
+     * Eliminar varios usuarios a la vez (solo admin).
+     */
+    public function bulkDestroy(Request $request)
+    {
+        $data = $request->validate([
+            'ids'   => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer', 'exists:users,id'],
+        ]);
+
+        $ids = collect($data['ids'])
+            ->map(fn ($id) => (int) $id)
+            ->reject(fn ($id) => $id === auth()->id())
+            ->unique()
+            ->all();
+
+        if (empty($ids)) {
+            return redirect()->route('admin.users.index')
+                ->with('error', 'No se seleccionaron usuarios válidos para eliminar.');
+        }
+
+        $count = User::whereIn('id', $ids)->count();
+        User::whereIn('id', $ids)->delete();
+
+        return redirect()->route('admin.users.index')
+            ->with('success', "{$count} usuario(s) eliminado(s) correctamente.");
+    }
+
+    /**
      * Resetear contraseña de un usuario (solo admin).
      */
     public function resetPassword(Request $request, User $user)

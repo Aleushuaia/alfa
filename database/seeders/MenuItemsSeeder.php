@@ -13,7 +13,6 @@ class MenuItemsSeeder extends Seeder
     {
         $items = [
             // ── Procesamiento de Texto ──────────────────────────────────────
-            ['key' => 'pdf-extractor',    'label' => 'PDF de imagen a texto', 'section' => 'Procesamiento de Texto', 'icon' => 'fas fa-file-alt',    'route_name' => 'pdf-extractor.index',    'route_pattern' => 'pdf-extractor*',    'sort_order' => 10],
             ['key' => 'herramientas_pdf', 'label' => 'Herramientas PDF',      'section' => 'Procesamiento de Texto', 'icon' => 'fas fa-file-pdf',    'route_name' => 'pdf-tools.index',        'route_pattern' => 'pdf-tools*',        'sort_order' => 15],
             ['key' => 'word-anonymizer',  'label' => 'Anonimizador',          'section' => 'Procesamiento de Texto', 'icon' => 'fas fa-file-word',   'route_name' => 'word-anonymizer.index',  'route_pattern' => 'word-anonymizer*',  'sort_order' => 20],
 

@@ -20,17 +20,8 @@
     <nav class="sidebar-nav py-2">
 
         {{-- ── Procesamiento de Texto ────────────────────────────────────── --}}
-        @canany(['menu.pdf-extractor', 'menu.word-anonymizer', 'menu.herramientas_pdf'])
+        @canany(['menu.word-anonymizer', 'menu.herramientas_pdf'])
         <p class="nav-section-label">Procesamiento de Texto</p>
-        @can('menu.pdf-extractor')
-        <a href="{{ route('pdf-extractor.index') }}"
-           class="nav-link {{ request()->routeIs('pdf-extractor*') ? 'active' : '' }}"
-           title=""
-           data-sidebar-tooltip="PDF de imagen a texto">
-            <span class="nav-icon"><i class="fas fa-file-alt"></i></span>
-            <span>Pdf de imagen a texto</span>
-        </a>
-        @endcan
         @can('menu.word-anonymizer')
         <a href="{{ route('word-anonymizer.index') }}"
            class="nav-link {{ request()->routeIs('word-anonymizer*') ? 'active' : '' }}"
@@ -90,6 +81,7 @@
         @can('menu.blacklist')
         <a href="{{ route('blacklist.index') }}"
            class="nav-link {{ request()->routeIs('blacklist.*') ? 'active' : '' }}"
+           target="_blank" rel="noopener noreferrer"
            title=""
            data-sidebar-tooltip="Blacklist (omitidas)">
             <span class="nav-icon"><i class="fas fa-ban"></i></span>
@@ -99,6 +91,7 @@
         @can('menu.whitelist')
         <a href="{{ route('whitelist.index') }}"
            class="nav-link {{ request()->routeIs('whitelist.*') ? 'active' : '' }}"
+           target="_blank" rel="noopener noreferrer"
            title=""
            data-sidebar-tooltip="Whitelist (agregadas)">
             <span class="nav-icon"><i class="fas fa-check-circle"></i></span>

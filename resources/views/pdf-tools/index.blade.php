@@ -11,10 +11,16 @@
     display: grid;
     grid-template-columns: 340px 1fr;
     gap: 1.25rem;
-    align-items: start;
+    align-items: stretch;
+}
+@media (min-width: 961px) {
+    /* Ocupar toda la altura visible para que el footer quede al pie */
+    .pt-wrap { min-height: calc(100vh - var(--topbar-h) - 7rem); }
+    .pt-wrap > .t-card { display: flex; flex-direction: column; }
+    .pt-wrap > .t-card > .t-card-body { flex: 1; }
 }
 @media (max-width: 960px) {
-    .pt-wrap { grid-template-columns: 1fr; }
+    .pt-wrap { grid-template-columns: 1fr; align-items: start; }
 }
 
 /* ── Tarjeta base ─────────────────────────────────────────────────────────── */
@@ -217,7 +223,8 @@
 }
 .t-btn:hover:not(:disabled) { opacity: .82; transform: translateY(-1px); }
 .t-btn-copy     { background: var(--badge-light-bg); color: var(--accent); border: 1px solid var(--badge-light-border); }
-.t-btn-download { background: var(--alert-success-bg); color: var(--alert-success-color); }
+.t-btn-download { background: linear-gradient(135deg,#047857,#059669); color: #fff; box-shadow: 0 3px 12px rgba(16,185,129,.3); }
+.t-btn-download:hover:not(:disabled) { background: linear-gradient(135deg,#065f46,#047857); color: #fff; opacity: 1; }
 .t-btn-clear    { background: var(--alert-danger-bg,#fee2e2); color: var(--alert-danger-color,#dc2626); }
 
 /* ── Panel resultado compresión ───────────────────────────────────────────── */
@@ -226,7 +233,7 @@
     align-items: center; padding: 1.75rem 1rem; text-align: center;
 }
 .compress-result.show { display: flex; }
-.cr-icon { font-size: 2.5rem; color: #059669; margin-bottom: .65rem; }
+.cr-icon { font-size: 2.5rem; color: #dc2626; margin-bottom: .65rem; }
 .cr-title { font-size: 1rem; font-weight: 700; color: var(--heading-color); margin-bottom: .3rem; }
 .cr-stats {
     display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center;
@@ -243,15 +250,15 @@
     color: #059669;
 }
 .btn-download-pdf {
-    display: inline-flex; align-items: center; gap: .45rem;
-    padding: .62rem 1.4rem; border-radius: 9px; border: none;
-    background: linear-gradient(135deg,#059669,#10b981);
-    color: #fff; font-size: .9rem; font-weight: 600; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; gap: .45rem;
+    padding: .62rem 1.4rem; border-radius: 9px;
+    background: var(--badge-light-bg); border: 1px solid var(--badge-light-border);
+    color: #000; font-size: .9rem; font-weight: 600; cursor: pointer;
     text-decoration: none;
-    box-shadow: 0 3px 12px rgba(16,185,129,.3);
-    transition: opacity .18s, transform .13s;
+    box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    transition: background .2s, transform .13s;
 }
-.btn-download-pdf:hover { opacity: .88; transform: translateY(-1px); color: #fff; }
+.btn-download-pdf:hover { background: var(--badge-light-border); transform: translateY(-1px); color: #000; }
 
 /* ── Estado vacío ─────────────────────────────────────────────────────────── */
 .t-empty {
@@ -404,18 +411,15 @@
 
             {{-- Panel Compresión --}}
             <div class="compress-result" id="panel-compress">
-                <i class="fas fa-file-zipper cr-icon" style="color:#d97706;"></i>
+                <i class="fas fa-file-pdf cr-icon" style="color:#dc2626;"></i>
                 <div class="cr-title">¡Compresión completada!</div>
                 <p style="font-size:.81rem;color:var(--muted-color);margin:.25rem 0 0;">
                     El archivo fue comprimido exitosamente!
                 </p>
                 <div class="cr-stats" id="compress-stats"></div>
                 <a href="#" class="btn-download-pdf" id="btn-download-pdf">
-                    <i class="fas fa-file-arrow-down"></i> Descargar PDF comprimido
+                    <i class="fas fa-file-pdf"></i> Descargar PDF comprimido
                 </a>
-                <button type="button" class="t-btn t-btn-clear mt-3" id="btn-clear-compress" style="margin-top:.85rem;">
-                    <i class="fas fa-arrow-rotate-left"></i> Nueva compresión
-                </button>
             </div>
 
         </div>
@@ -462,7 +466,6 @@
     const panelCompress   = document.getElementById('panel-compress');
     const compressStats   = document.getElementById('compress-stats');
     const btnDownloadPdf  = document.getElementById('btn-download-pdf');
-    const btnClearCompress = document.getElementById('btn-clear-compress');
 
     const toastCont       = document.getElementById('toast-container');
 
@@ -689,13 +692,6 @@
             btnCompressToggle.disabled = false;
             btnCompressRun.disabled = false;
         }
-    });
-
-    btnClearCompress.addEventListener('click', () => {
-        panelCompress.classList.remove('show');
-        emptyState.style.display = '';
-        resultCardTitle.textContent = 'Resultado';
-        resultCardSub.textContent   = 'El resultado del proceso aparecerá aquí';
     });
 
 })();

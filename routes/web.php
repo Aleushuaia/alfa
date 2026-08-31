@@ -5,7 +5,6 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EntityConfigController;
 use App\Http\Controllers\GestionarUnidadController;
-use App\Http\Controllers\OcrExtractorController;
 use App\Http\Controllers\OllamaTestController;
 use App\Http\Controllers\PdfAnalyzerController;
 use App\Http\Controllers\ProfileController;
@@ -90,10 +89,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/transcripcion', [TranscripcionController::class, 'index'])->name('transcripcion.index');
     Route::post('/transcripcion/procesar', [TranscripcionController::class, 'transcribir'])->name('transcripcion.procesar');
 
-    // ── Extractor de Texto via OCR (Tesseract) ───────────────────────────
-    Route::get('/ocr-extractor', [OcrExtractorController::class, 'index'])->name('pdf-extractor.index');
-    Route::post('/ocr-extractor/extract', [OcrExtractorController::class, 'extract'])->name('pdf-extractor.extract');
-
     // ── Herramientas PDF (OCR + Compresión) ──────────────────────────────
     Route::middleware('can:menu.herramientas_pdf')->prefix('pdf-tools')->name('pdf-tools.')->group(function () {
         Route::get('/',          [PdfToolsController::class, 'index'])->name('index');
@@ -133,6 +128,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/users', [UserManagementController::class, 'store'])->name('users.store');
         Route::put('/users/{user}', [UserManagementController::class, 'update'])->name('users.update');
         Route::put('/users/{user}/reset-password', [UserManagementController::class, 'resetPassword'])->name('users.reset-password');
+        Route::delete('/users-bulk', [UserManagementController::class, 'bulkDestroy'])->name('users.bulk-destroy');
         Route::delete('/users/{user}', [UserManagementController::class, 'destroy'])->name('users.destroy');
 
         // ── Unidades de Trabajo ──────────────────────────────────────────
