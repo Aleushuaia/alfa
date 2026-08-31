@@ -9,7 +9,7 @@
 <aside id="sidebar">
     <a href="{{ route('pdf-analyzer.form') }}" class="sidebar-brand d-flex align-items-center gap-2">
         <div class="brand-icon">
-            <img src="{{ asset('alfa.png') }}" alt="{{ config('app.name', 'Alfa colaborador inteligente') }}" class="brand-image">
+            <img src="{{ secure_asset('alfa.png') }}" alt="{{ config('app.name', 'Alfa colaborador inteligente') }}" class="brand-image">
         </div>
         <div class="brand-text" style="margin-left:20px;display:flex;flex-direction:column;justify-content:center;">
             <strong style="display:block;font-size:1.15rem">Alfa</strong>
