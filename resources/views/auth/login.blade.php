@@ -10,7 +10,7 @@
         (function(){var t=localStorage.getItem('alfa-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();
     </script>
 
-    <link rel="icon" href="{{ secure_asset('alfa.png') }}" sizes="100x100" type="image/png">
+    <link rel="icon" href="{{ alfa_asset('alfa.png') }}" sizes="100x100" type="image/png">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
@@ -373,7 +373,7 @@
         <div class="login-brand">
             <div class="brand-row">
                 <div class="brand-avatar">
-                    <img src="{{ secure_asset('alfa.png') }}" alt="Alfa">
+                    <img src="{{ alfa_asset('alfa.png') }}" alt="Alfa">
                 </div>
                 <div class="brand-text">
                     <h1>Alfa</h1>

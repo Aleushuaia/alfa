@@ -13,8 +13,8 @@
     </script>
 
     {{-- Favicon --}}
-    <link rel="icon" href="{{ secure_asset('alfa.png') }}" sizes="100x100" type="image/png">
-    <link rel="apple-touch-icon" href="{{ secure_asset('alfa.png') }}">
+    <link rel="icon" href="{{ alfa_asset('alfa.png') }}" sizes="100x100" type="image/png">
+    <link rel="apple-touch-icon" href="{{ alfa_asset('alfa.png') }}">
 
     {{-- Google Fonts --}}
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">

@@ -93,33 +93,46 @@
     @endif
 </div>
 
-{{-- ── Modal de eliminación ────────────────────────────────────────────────── --}}
+{{-- ── Modal de confirmación de eliminación ──────────────────────────────── --}}
 <div class="modal fade" id="modalDeleteUnidad" tabindex="-1" aria-labelledby="modalDeleteLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="background:var(--card-bg);border:1px solid var(--card-border);border-radius:16px;overflow:hidden">
-            <div class="modal-header" style="border-bottom:1px solid var(--card-border)">
-                <h5 class="modal-title" id="modalDeleteLabel" style="color:var(--heading-color);font-size:.95rem">
-                    <i class="fas fa-trash-alt me-2" style="color:#ef4444"></i>Eliminar Unidad
+        <div class="modal-content"
+             style="background:var(--card-bg);border:1px solid var(--card-border);border-radius:18px;overflow:hidden">
+
+            <div class="modal-header border-0" style="padding:1.25rem 1.5rem .25rem">
+                <h5 class="modal-title" id="modalDeleteLabel"
+                    style="color:var(--heading-color);font-size:1rem;font-weight:700">
+                    Eliminar unidad de trabajo
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
-            <div class="modal-body" id="modal-delete-body" style="color:var(--body-color)">
-                {{-- Poblado dinámicamente por JS --}}
+
+            <div class="modal-body text-center" style="padding:.75rem 1.75rem 1.5rem">
+                <div id="modal-delete-icon"
+                     class="mx-auto mb-3 d-flex align-items-center justify-content-center"
+                     style="width:60px;height:60px;border-radius:50%;background:rgba(239,68,68,.12)">
+                    <i class="fas fa-trash-alt" style="font-size:1.4rem;color:#ef4444"></i>
+                </div>
+                <div id="modal-delete-body" style="color:var(--body-color)"></div>
             </div>
-            <div class="modal-footer" style="border-top:1px solid var(--card-border)">
-                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal"
-                        style="border-radius:8px;min-width:90px">
+
+            <div class="modal-footer border-0" style="padding:0 1.5rem 1.5rem;gap:.6rem;flex-wrap:nowrap">
+                <button type="button" class="btn flex-fill" data-bs-dismiss="modal"
+                        style="border-radius:10px;font-weight:600;border:1px solid var(--card-border);color:var(--body-color)">
                     Cancelar
                 </button>
-                <form id="form-delete-unidad" method="POST" class="d-inline">
+                <form id="form-delete-unidad" method="POST" class="flex-fill m-0">
                     @csrf
                     @method('DELETE')
-                    <button type="submit" id="btn-confirm-delete" class="btn btn-sm btn-danger"
-                            style="border-radius:8px;min-width:90px;font-weight:600">
-                        <i class="fas fa-trash-alt me-1"></i>Eliminar
+                    <button type="submit" id="btn-confirm-delete" class="btn btn-danger w-100"
+                            style="border-radius:10px;font-weight:600">
+                        <span class="spinner-border spinner-border-sm me-1 d-none" id="btn-confirm-spinner"
+                              role="status" aria-hidden="true"></span>
+                        <i class="fas fa-trash-alt me-1" id="btn-confirm-icon"></i>Sí, eliminar
                     </button>
                 </form>
             </div>
+
         </div>
     </div>
 </div>
@@ -129,51 +142,68 @@
 @push('scripts')
 <script>
 (function () {
-    // ── Filas clickeables ───────────────────────────────────────────────────
+    // ── Navegación al hacer clic en la fila ───────────────────────────────
     document.querySelectorAll('.unidad-row').forEach(function (row) {
         row.addEventListener('click', function () {
             window.location.href = this.dataset.href;
         });
     });
 
-    // ── Modal de eliminación ────────────────────────────────────────────────
-    document.addEventListener('click', function (e) {
-        const btn = e.target.closest('.btn-delete-unidad');
-        if (!btn) return;
+    // ── Confirmación de eliminación ───────────────────────────────────────
+    const modalEl     = document.getElementById('modalDeleteUnidad');
+    const modal       = modalEl ? new bootstrap.Modal(modalEl) : null;
+    const bodyEl      = document.getElementById('modal-delete-body');
+    const iconEl      = document.getElementById('modal-delete-icon');
+    const form        = document.getElementById('form-delete-unidad');
+    const confirmBtn  = document.getElementById('btn-confirm-delete');
+    const spinner     = document.getElementById('btn-confirm-spinner');
+    const confirmIcon = document.getElementById('btn-confirm-icon');
+    const baseUrl     = "{{ url('admin/unidades') }}";
 
-        const id        = btn.dataset.id;
-        const desc      = btn.dataset.desc;
-        const userCount = parseInt(btn.dataset.users, 10);
+    document.querySelectorAll('.btn-delete-unidad').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
 
-        const body       = document.getElementById('modal-delete-body');
-        const confirmBtn = document.getElementById('btn-confirm-delete');
-        const form       = document.getElementById('form-delete-unidad');
+            const id        = this.dataset.id;
+            const desc      = this.dataset.desc || '';
+            const userCount = parseInt(this.dataset.users, 10) || 0;
 
-        if (userCount > 0) {
-            // Bloquear eliminación
-            body.innerHTML = `
-                <div class="alert alert-warning mb-0" style="border-radius:10px">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    No se puede eliminar la unidad <strong>"${escHtml(desc)}"</strong>
-                    porque tiene <strong>${userCount} usuario${userCount !== 1 ? 's' : ''} asociado${userCount !== 1 ? 's' : ''}</strong>.
-                    <br><br>
-                    <span style="font-size:.87rem">Debés quitar todos los usuarios de la unidad antes de eliminarla.</span>
-                </div>`;
-            confirmBtn.style.display = 'none';
-        } else {
-            body.innerHTML = `
-                <p style="color:var(--body-color)">
-                    ¿Estás seguro de que deseás eliminar la unidad <strong>"${escHtml(desc)}"</strong>?
-                </p>
-                <p class="small mb-0" style="color:var(--muted-color)">
-                    <i class="fas fa-info-circle me-1"></i>Esta acción no se puede deshacer.
-                </p>`;
-            form.action = `/admin/unidades/${id}`;
-            confirmBtn.style.display = '';
-        }
+            if (userCount > 0) {
+                iconEl.style.background = 'rgba(245,158,11,.14)';
+                iconEl.innerHTML = '<i class="fas fa-triangle-exclamation" style="font-size:1.4rem;color:#f59e0b"></i>';
+                bodyEl.innerHTML =
+                    '<p class="fw-bold mb-2" style="font-size:1rem;color:var(--heading-color)">No se puede eliminar esta unidad</p>' +
+                    '<p class="mb-0" style="font-size:.9rem">La unidad <strong>&laquo;' + escHtml(desc) + '&raquo;</strong> ' +
+                    'tiene <strong>' + userCount + ' usuario' + (userCount !== 1 ? 's' : '') +
+                    ' asociado' + (userCount !== 1 ? 's' : '') + '</strong>.<br>' +
+                    'Quitá primero todos los usuarios de la unidad para poder eliminarla.</p>';
+                confirmBtn.style.display = 'none';
+            } else {
+                iconEl.style.background = 'rgba(239,68,68,.12)';
+                iconEl.innerHTML = '<i class="fas fa-trash-alt" style="font-size:1.4rem;color:#ef4444"></i>';
+                bodyEl.innerHTML =
+                    '<p class="fw-bold mb-2" style="font-size:1rem;color:var(--heading-color)">¿Eliminar esta unidad?</p>' +
+                    '<div class="py-2 px-3 mb-3 d-inline-block" style="background:var(--badge-light-bg);border-radius:10px;font-weight:600;color:var(--body-color)">' +
+                    '<i class="fas fa-sitemap me-2" style="color:var(--accent);opacity:.6"></i>' + escHtml(desc) + '</div>' +
+                    '<p class="mb-0" style="font-size:.85rem;color:var(--muted-color)">' +
+                    '<i class="fas fa-circle-info me-1"></i>Esta acción no se puede deshacer.</p>';
+                form.action = baseUrl + '/' + encodeURIComponent(id);
+                confirmBtn.style.display = '';
+            }
 
-        new bootstrap.Modal(document.getElementById('modalDeleteUnidad')).show();
+            if (modal) modal.show();
+        });
     });
+
+    // ── Estado de carga al confirmar ─────────────────────────────────────
+    if (form) {
+        form.addEventListener('submit', function () {
+            confirmBtn.disabled = true;
+            spinner.classList.remove('d-none');
+            confirmIcon.classList.add('d-none');
+        });
+    }
 
     function escHtml(str) {
         return String(str)
