@@ -287,6 +287,8 @@ class WordAnonymizerController extends Controller
             return response()->json(['error' => $e->getMessage()], 422);
         }
 
+        $rawEntities = $result['entities'] ?? [];
+
         if ($entityFilter) {
             $allowedTypes = array_map('trim', explode(',', $entityFilter));
             $result = $this->filterByEntityTypes($result, $allowedTypes);
@@ -295,6 +297,17 @@ class WordAnonymizerController extends Controller
         $filtered = $this->filterEntitiesAndHtml($result['entities'] ?? [], $result['html'] ?? '');
         $final    = $this->injectWhitelistEntities($filtered['entities'], $filtered['html'], $text);
         $grouped  = $this->buildGroupedEntities($final['entities']);
+
+        // Porcentaje de confianza por entidad (mismo scorer que el analizador de PDF).
+        $hints = [];
+        foreach ($rawEntities as $e) {
+            $k = \App\Services\EntityConfidenceScorer::normalizeKey((string) ($e['text'] ?? ''))
+                . '|' . strtoupper((string) ($e['label'] ?? ''));
+            if (($hints[$k] ?? null) !== 'regex') {
+                $hints[$k] = $e['source'] ?? 'spacy';
+            }
+        }
+        $grouped = app(\App\Services\EntityConfidenceScorer::class)->scoreGrouped($grouped, $text, $hints);
 
         Log::info('WordAnonymizer: análisis NLP OK', [
             'entities' => count($final['entities']),
@@ -785,7 +798,7 @@ class WordAnonymizerController extends Controller
     }
 
     // ═════════════════════════════════════════════════════════════════════════
-    //  NLP / ENTITY HELPERS  (mirrors PdfAnalyzerController)
+    //  NLP / ENTITY HELPERS  (motor NLP del Anonimizador)
     // ═════════════════════════════════════════════════════════════════════════
 
     private function filterByEntityTypes(array $result, array $allowedTypes): array
@@ -800,7 +813,9 @@ class WordAnonymizerController extends Controller
             'DNI'   => ['DNI'],
             'EMAIL' => ['EMAIL'],
             'PHONE' => ['PHONE'],
-            'MISC'  => ['MISC', 'PATENTE'],
+            'PATENTE' => ['PATENTE'],
+            'CUIT'  => ['CUIT'],
+            'MISC'  => ['MISC'],
         ];
 
         $allowedRaw = [];
@@ -819,7 +834,8 @@ class WordAnonymizerController extends Controller
             'LOC' => 'location', 'GPE' => 'location',
             'DATE' => 'date', 'DNI' => 'dni',
             'EMAIL' => 'email', 'PHONE' => 'phone',
-            'MISC' => 'misc', 'PATENTE' => 'misc',
+            'PATENTE' => 'patente', 'CUIT' => 'cuit',
+            'MISC' => 'misc',
         ];
 
         $html = $result['html'] ?? '';
@@ -844,7 +860,7 @@ class WordAnonymizerController extends Controller
 
     // ─────────────────────────────────────────────────────────────────────────
     // normalizeForMatch + buildFlexiblePattern  — Helpers de matching tolerante
-    //   a mayúsculas, diacríticos y espacios. Idénticos al PdfAnalyzerController.
+    //   a mayúsculas, diacríticos y espacios. Normalización robusta para matching.
     // ─────────────────────────────────────────────────────────────────────────
     private static function normalizeForMatch(string $s): string
     {
@@ -1040,6 +1056,8 @@ class WordAnonymizerController extends Controller
             'DNI'           => 'dni',
             'EMAIL'         => 'email',
             'PHONE'         => 'phone',
+            'PATENTE'       => 'patente',
+            'CUIT'          => 'cuit',
             default         => 'misc',
         };
     }
@@ -1054,7 +1072,7 @@ class WordAnonymizerController extends Controller
         // Lower number = higher priority
         $typePriority = [
             'PER' => 1, 'PERSON' => 1,
-            'DNI' => 2, 'EMAIL' => 2, 'PHONE' => 2,
+            'DNI' => 2, 'EMAIL' => 2, 'PHONE' => 2, 'CUIT' => 2, 'PATENTE' => 2,
             'ORG' => 3, 'LOC' => 3, 'GPE' => 3,
             'DATE' => 4,
             'MISC' => 5,

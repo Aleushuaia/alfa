@@ -7,7 +7,7 @@
     $isAdmin = auth()->check() && auth()->user()->hasRole('administrador');
 @endphp
 <aside id="sidebar">
-    <a href="{{ route('pdf-analyzer.form') }}" class="sidebar-brand d-flex align-items-center gap-2">
+    <a href="{{ route('word-anonymizer.index') }}" class="sidebar-brand d-flex align-items-center gap-2">
         <div class="brand-icon">
             <img src="{{ alfa_asset('alfa.png') }}" alt="{{ config('app.name', 'Alfa colaborador inteligente') }}" class="brand-image">
         </div>
@@ -20,7 +20,7 @@
     <nav class="sidebar-nav py-2">
 
         {{-- ── Procesamiento de Texto ────────────────────────────────────── --}}
-        @canany(['menu.word-anonymizer', 'menu.herramientas_pdf'])
+        @canany(['menu.word-anonymizer', 'menu.herramientas_pdf', 'menu.pdf-tools-pro', 'menu.convertir-docx'])
         <p class="nav-section-label">Procesamiento de Texto</p>
         @can('menu.word-anonymizer')
         <a href="{{ route('word-anonymizer.index') }}"
@@ -35,10 +35,31 @@
         @can('menu.herramientas_pdf')
         <a href="{{ route('pdf-tools.index') }}"
            class="nav-link {{ request()->routeIs('pdf-tools.*') ? 'active' : '' }}"
+           target="_blank" rel="noopener noreferrer"
            title=""
            data-sidebar-tooltip="Herramientas PDF">
             <span class="nav-icon"><i class="fas fa-file-pdf"></i></span>
             <span>Herramientas PDF</span>
+        </a>
+        @endcan
+        @can('menu.pdf-tools-pro')
+        <a href="{{ route('pdf-tools-pro.index') }}"
+           class="nav-link {{ request()->routeIs('pdf-tools-pro.*') ? 'active' : '' }}"
+           target="_blank" rel="noopener noreferrer"
+           title=""
+           data-sidebar-tooltip="PDF Tools">
+            <span class="nav-icon"><i class="fas fa-layer-group"></i></span>
+            <span>PDF Tools</span>
+        </a>
+        @endcan
+        @can('menu.convertir-docx')
+        <a href="{{ route('convertir-docx.index') }}"
+           class="nav-link {{ request()->routeIs('convertir-docx.*') ? 'active' : '' }}"
+           target="_blank" rel="noopener noreferrer"
+           title=""
+           data-sidebar-tooltip="Convertir a DocX">
+            <span class="nav-icon"><i class="fas fa-file-export"></i></span>
+            <span>Convertir a DocX</span>
         </a>
         @endcan
         @endcanany
@@ -49,6 +70,7 @@
         @can('menu.transcripcion')
         <a href="{{ route('transcripcion.index') }}"
            class="nav-link {{ request()->routeIs('transcripcion.*') ? 'active' : '' }}"
+           target="_blank" rel="noopener noreferrer"
            title=""
            data-sidebar-tooltip="Transcripciones">
             <span class="nav-icon"><i class="fas fa-microphone"></i></span>
@@ -58,6 +80,7 @@
         @can('menu.ollama')
         <a href="{{ route('ollama.test') }}"
            class="nav-link {{ request()->routeIs('ollama.*') ? 'active' : '' }}"
+           target="_blank" rel="noopener noreferrer"
            title=""
            data-sidebar-tooltip="Probar modelo LLM">
             <span class="nav-icon"><i class="fas fa-robot"></i></span>
@@ -67,6 +90,7 @@
         @can('menu.sujetos-procesales')
         <a href="{{ route('sujetos-procesales.index') }}"
            class="nav-link {{ request()->routeIs('sujetos-procesales.*') ? 'active' : '' }}"
+           target="_blank" rel="noopener noreferrer"
            title=""
            data-sidebar-tooltip="Extraer sujetos procesales">
             <span class="nav-icon"><i class="fas fa-users"></i></span>
@@ -101,6 +125,7 @@
         @can('menu.entity-config')
         <a href="{{ route('entity-config.index') }}"
            class="nav-link {{ request()->routeIs('entity-config.*') ? 'active' : '' }}"
+           target="_blank" rel="noopener noreferrer"
            title=""
            data-sidebar-tooltip="Colores de Entidades">
             <span class="nav-icon"><i class="fas fa-palette"></i></span>
@@ -110,6 +135,7 @@
         @can('menu.theme-config')
         <a href="{{ route('theme-config.index') }}"
            class="nav-link {{ request()->routeIs('theme-config.*') ? 'active' : '' }}"
+           target="_blank" rel="noopener noreferrer"
            title=""
            data-sidebar-tooltip="Colores del tema">
             <span class="nav-icon"><i class="fas fa-swatchbook"></i></span>
@@ -123,6 +149,7 @@
         <p class="nav-section-label mt-2">Ajustes</p>
         <a href="{{ route('admin.users.index') }}"
            class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}"
+           target="_blank" rel="noopener noreferrer"
            title=""
            data-sidebar-tooltip="Gestión de usuarios y roles">
             <span class="nav-icon"><i class="fas fa-users-cog"></i></span>
@@ -130,6 +157,7 @@
         </a>
         <a href="{{ route('admin.unidades.index') }}"
            class="nav-link {{ request()->routeIs('admin.unidades.*') ? 'active' : '' }}"
+           target="_blank" rel="noopener noreferrer"
            title=""
            data-sidebar-tooltip="Unidades de Trabajo">
             <span class="nav-icon"><i class="fas fa-sitemap"></i></span>
@@ -137,6 +165,7 @@
         </a>
         <a href="{{ route('admin.administradores-unidades.index') }}"
            class="nav-link {{ request()->routeIs('admin.administradores-unidades.*') ? 'active' : '' }}"
+           target="_blank" rel="noopener noreferrer"
            title=""
            data-sidebar-tooltip="Administradores de Unidades">
             <span class="nav-icon"><i class="fas fa-user-shield"></i></span>
@@ -144,6 +173,7 @@
         </a>
         <a href="{{ route('admin.prompts.index') }}"
            class="nav-link {{ request()->routeIs('admin.prompts.*') ? 'active' : '' }}"
+           target="_blank" rel="noopener noreferrer"
            title=""
            data-sidebar-tooltip="Gestión de Prompts">
             <span class="nav-icon"><i class="fas fa-file-code"></i></span>
@@ -151,6 +181,7 @@
         </a>
         <a href="{{ route('admin.menu-permissions.index') }}"
            class="nav-link {{ request()->routeIs('admin.menu-permissions.*') ? 'active' : '' }}"
+           target="_blank" rel="noopener noreferrer"
            title=""
            data-sidebar-tooltip="Permisos de Menú">
             <span class="nav-icon"><i class="fas fa-shield-halved"></i></span>
@@ -163,6 +194,7 @@
         <p class="nav-section-label mt-2">Mi Unidad</p>
         <a href="{{ route('gestionar-unidad.index') }}"
            class="nav-link {{ request()->routeIs('gestionar-unidad.*') ? 'active' : '' }}"
+           target="_blank" rel="noopener noreferrer"
            title=""
            data-sidebar-tooltip="Gestionar mi Unidad">
             <span class="nav-icon"><i class="fas fa-building-user"></i></span>

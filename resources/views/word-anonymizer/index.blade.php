@@ -6,6 +6,9 @@
 
 @push('styles')
 <style>
+/*  Acercar el contenido al menú superior (solo en esta pantalla)  */
+#page-content { padding-top: .55rem; }
+
 /*  LAYOUT  */
 .wa-outer {
     display: grid;
@@ -197,7 +200,11 @@
 .entity.dni      { background: {{ $entityColors["DNI"]   ?? "#e0e0e0" }}; }
 .entity.email    { background: {{ $entityColors["EMAIL"] ?? "#ccf2ff" }}; }
 .entity.phone    { background: {{ $entityColors["PHONE"] ?? "#ffffcc" }}; }
+.entity.patente  { background: {{ $entityColors["PATENTE"] ?? "#f1c0e8" }}; }
+.entity.cuit     { background: {{ $entityColors["CUIT"]    ?? "#d0f4de" }}; }
 .entity.misc     { background: {{ $entityColors["MISC"]  ?? "#e0ccff" }}; }
+.entity-row.is-alert > td { background: #fff5f5; }
+.entity.is-alert-span { box-shadow: inset 0 0 0 2px #ff9d9d; border-radius: 4px; }
 .entity-flash    { background: #ccff00 !important; color: #000 !important; box-shadow: 0 0 16px rgba(204,255,0,.9); border-radius: 4px; }
 .entity-hover    { background: #ccff00 !important; color: #000 !important; box-shadow: 0 0 10px rgba(204,255,0,.8); border-radius: 4px; }
 
@@ -241,6 +248,21 @@
 .ent-scroll { overflow-y: auto; max-height: calc(100vh - 220px); -webkit-overflow-scrolling: touch; }
 .entity-row.jumping td:first-child { background: color-mix(in srgb,#2563eb 12%,var(--table-hover-bg,#f0f4ff)); }
 
+/*  Panel "Entidades detectadas": título arriba + botonera debajo (flujo normal)  */
+#wa-ent-card > .wc-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: .45rem;
+    padding: .5rem .85rem .55rem;
+    min-height: 0;
+}
+#wa-ent-card > .wc-head > .ent-head-row { display: flex; align-items: center; gap: .5rem; min-width: 0; }
+.ent-toolbar {
+    display: flex; align-items: center; gap: .3rem;
+    flex-wrap: wrap;
+}
+.ent-toolbar .prg-wrap.active { display: flex; flex-direction: column; justify-content: center; }
+
 /*  DOWNLOAD CARD  */
 #download-card { border-color: #10b981; background: var(--card-bg); }
 #download-card .wc-head { border-bottom: 1px solid var(--card-border); }
@@ -266,9 +288,6 @@
 @endpush
 
 @section('content')
-<div style="display: flex; align-items: center; gap: .5rem; margin-bottom: .85rem;">
-    <span style="font-size: .78rem; color: var(--muted-color);">Procesamiento de Texto</span>
-</div>
 <div class="wa-outer" id="wa-outer">
 
     {{--  SIDEBAR  --}}
@@ -395,7 +414,8 @@
                         ['type'=>'PER','label'=>'Persona'],['type'=>'ORG','label'=>'Organización'],
                         ['type'=>'LOC','label'=>'Lugar'],  ['type'=>'DATE','label'=>'Fecha'],
                         ['type'=>'DNI','label'=>'DNI'],    ['type'=>'EMAIL','label'=>'Email'],
-                        ['type'=>'PHONE','label'=>'Teléfono'],['type'=>'MISC','label'=>'Otros'],
+                        ['type'=>'PHONE','label'=>'Teléfono'],['type'=>'PATENTE','label'=>'Patente'],
+                        ['type'=>'CUIT','label'=>'CUIT'],['type'=>'MISC','label'=>'Otros'],
                     ];
                 @endphp
                 @foreach($etList as $et)
@@ -487,20 +507,29 @@
 
         {{-- ENTITY PANEL --}}
         <div class="wc" id="wa-ent-card" style="display:none;flex-direction:column;">
-            <div class="wc-head between">
-                <div style="display:flex;align-items:center;gap:.5rem;">
+            <div class="wc-head">
+                {{-- Fila 1: título + contador (se mantienen arriba) --}}
+                <div class="ent-head-row">
                     <div class="wc-icon wc-icon-purple"><i class="fas fa-list-ul"></i></div>
                     <div class="wc-title-stack">
                         <span class="wc-title">Entidades detectadas</span>
                         <span class="wc-sub" id="ent-count">0 entidades</span>
                     </div>
                 </div>
-                <div style="display:flex;align-items:center;gap:.3rem;flex-wrap:wrap;">
+                {{-- Fila 2: botonera fija (siempre visible, no se reordena) --}}
+                <div class="ent-toolbar">
                     <button class="btn-hdr btn-hdr-amber" id="btn-inicializar-personas" title="Escribe las iniciales de cada persona en el campo etiqueta de la tabla">
                         <i class="fas fa-id-badge"></i> Inicialar personas
                     </button>
-                    <button class="btn-hdr btn-hdr-danger" id="btn-bulk-blacklist" style="display:none;">
-                        <i class="fas fa-ban"></i> Agregar a Blacklist
+                    <button class="btn-hdr btn-hdr-danger" id="btn-marcar-alertas" title="Selecciona las entidades con baja probabilidad de ser reales (confianza &lt; 20)">
+                        <i class="fas fa-triangle-exclamation"></i> Marcar alertas
+                        <span class="badge bg-light text-danger ms-1" id="alert-count-badge">0</span>
+                    </button>
+                    <button class="btn-hdr btn-hdr-muted" id="btn-omitir-once" disabled title="Quita las entidades seleccionadas solo de este análisis">
+                        <i class="fas fa-eye-slash"></i> Omitir esta vez
+                    </button>
+                    <button class="btn-hdr btn-hdr-danger" id="btn-bulk-blacklist" disabled>
+                        <i class="fas fa-ban"></i> Agregar a la Blacklist
                     </button>
                     <div class="prg-wrap" id="prg-anon" style="max-width:150px;">
                         <div class="prg-lbl">Anonimizando</div>
@@ -518,7 +547,9 @@
                             <tr>
                                 <th style="width:28px;"><input type="checkbox" id="ent-cb-all" title="Seleccionar todas" style="cursor:pointer;"></th>
                                 <th>Texto</th><th>Tipo</th>
-                                <th class="text-center">N</th><th>Etiqueta</th>
+                                <th class="text-center">N</th>
+                                <th class="text-center">Conf.</th>
+                                <th>Etiqueta</th>
                             </tr>
                         </thead>
                         <tbody id="ent-tbody"></tbody>
@@ -562,7 +593,7 @@
 
 /*  Config  */
 const EC    = @json($entityColors);
-const LMAP  = { PER:'PERSONA',PERSON:'PERSONA',ORG:'ORGANIZACIÓN',LOC:'LUGAR',GPE:'LUGAR',DATE:'FECHA',DNI:'DNI',EMAIL:'EMAIL',PHONE:'TELÉFONO',PATENTE:'PATENTE',MISC:'OTRO' };
+const LMAP  = { PER:'PERSONA',PERSON:'PERSONA',ORG:'ORGANIZACIÓN',LOC:'LUGAR',GPE:'LUGAR',DATE:'FECHA',DNI:'DNI',EMAIL:'EMAIL',PHONE:'TELÉFONO',PATENTE:'PATENTE',CUIT:'CUIT',MISC:'OTRO' };
 const ENTITY_DEFS = [
     { code:'PER',  cls:'person',   label:'Persona' },
     { code:'ORG',  cls:'org',      label:'Organización' },
@@ -571,10 +602,12 @@ const ENTITY_DEFS = [
     { code:'DNI',  cls:'dni',      label:'DNI' },
     { code:'EMAIL',cls:'email',    label:'Email' },
     { code:'PHONE',cls:'phone',    label:'Teléfono' },
+    { code:'PATENTE',cls:'patente',label:'Patente' },
+    { code:'CUIT', cls:'cuit',     label:'CUIT' },
     { code:'MISC', cls:'misc',     label:'Otros' },
 ];
 function labelToClass(code){ const d=ENTITY_DEFS.find(x=>x.code===code); return d?d.cls:'misc'; }
-const ORDER = ['PERSONA','ORGANIZACIÓN','LUGAR','FECHA','DNI','EMAIL','TELÉFONO','OTRO'];
+const ORDER = ['PERSONA','ORGANIZACIÓN','LUGAR','FECHA','DNI','EMAIL','TELÉFONO','PATENTE','CUIT','OTRO'];
 const WEXT  = ['.doc','.docx'];
 
 // ── Source tracking: 'word' | 'pdf' | 'plain' ─────────────────────────────
@@ -940,98 +973,163 @@ function renderTable(grouped){
     for(const item of sorted){
         const dl=LMAP[item.label]||item.label||'OTRO';
         const col=EC[item.label]||'#ddd';
-        if(dl!==cur){ html+=`<tr class="table-secondary"><td colspan="4" class="fw-semibold py-1" style="font-size:.73rem;">${esc(dl)}</td></tr>`; cur=dl; }
+        if(dl!==cur){ html+=`<tr class="table-secondary"><td colspan="6" class="fw-semibold py-1" style="font-size:.73rem;">${esc(dl)}</td></tr>`; cur=dl; }
         cnts[dl]=(cnts[dl]||0)+1;
         const vj=esc(JSON.stringify(item.variants||[item.text]));
-        html+=`<tr class="entity-row" data-entity-texts="${vj}" data-label="${esc(item.label)}" style="cursor:pointer;">
+        const sc = (item.score ?? 100);
+        const isAlert = !!item.is_alert;
+        const scCls = sc < 20 ? 'bg-danger' : (sc < 50 ? 'bg-warning text-dark' : 'bg-success');
+        html+=`<tr class="entity-row${isAlert?' is-alert':''}" data-entity-texts="${vj}" data-label="${esc(item.label)}" data-score="${sc}"${isAlert?' data-alert="1"':''} style="cursor:pointer;">
           <td class="py-1" style="width:28px;"><input type="checkbox" class="ent-row-cb" style="cursor:pointer;"></td>
           <td class="fw-medium py-1"><span class="ej-link" style="cursor:pointer;">${esc(item.text)}</span></td>
           <td class="py-1"><span class="badge rounded-pill" style="background:${col};color:#333;font-size:.67rem;">${esc(dl)}</span></td>
           <td class="text-center py-1"><span class="badge bg-secondary">${item.count}</span></td>
+          <td class="text-center py-1"><span class="badge ${scCls}" title="Confianza ${sc}/100${isAlert?' — posible falso positivo':''}">${sc}</span></td>
           <td class="py-1"><input type="text" class="form-control form-control-sm ent-lbl-in" value="${esc('['+dl+' '+cnts[dl]+']')}" style="min-width:120px;font-size:.75rem;padding:.18rem .4rem;"></td>
         </tr>`;
     }
     entTbody.innerHTML=html;
     bindRowEvents();
+    highlightAlertSpans();
+    syncToolbarState();
 }
 
-/*  Bulk Blacklist  */
-const btnBulkBl = $('btn-bulk-blacklist');
-const entCbAll  = $('ent-cb-all');
+/*  Recuadro rojo en el editor para las entidades de baja confianza  */
+function highlightAlertSpans(){
+    waEditor.querySelectorAll('.entity.is-alert-span').forEach(s=>s.classList.remove('is-alert-span'));
+    document.querySelectorAll('#ent-tbody .entity-row[data-alert="1"]').forEach(row=>{
+        let variants=[];
+        try{ variants=JSON.parse(row.dataset.entityTexts||'[]'); }catch{}
+        findSpans(variants).forEach(s=>s.classList.add('is-alert-span'));
+    });
+}
+
+/*  Botonera del panel de entidades  */
+const btnBulkBl              = $('btn-bulk-blacklist');
+const btnOmitirOnce          = $('btn-omitir-once');
+const btnMarcarAlertas       = $('btn-marcar-alertas');
+const entCbAll               = $('ent-cb-all');
 const btnInicializarPersonas = $('btn-inicializar-personas');
 
-function updateBulkBlBtn(){
-    const checked = document.querySelectorAll('#ent-tbody .ent-row-cb:checked');
-    const all     = document.querySelectorAll('#ent-tbody .ent-row-cb');
-    if(btnBulkBl) btnBulkBl.style.display = checked.length > 0 ? 'inline-flex' : 'none';
+/*
+ *  Estado coherente de la botonera:
+ *   - Con 1+ entidades seleccionadas → habilitados SOLO "Omitir esta vez" y
+ *     "Agregar a la Blacklist"; el resto visible pero deshabilitado.
+ *   - Sin selección (o tras ejecutar una de esas acciones) → se invierte:
+ *     se habilitan las demás y se deshabilitan esas dos.
+ *  Todos los botones permanecen SIEMPRE visibles y en su posición.
+ */
+function syncToolbarState(){
+    const rows   = document.querySelectorAll('#ent-tbody .entity-row').length;
+    const allCbs = document.querySelectorAll('#ent-tbody .ent-row-cb').length;
+    const sel    = document.querySelectorAll('#ent-tbody .ent-row-cb:checked').length;
+    const alerts = document.querySelectorAll('#ent-tbody .entity-row[data-alert="1"]').length;
+    const hasSel = sel > 0;
+
+    if(btnOmitirOnce)          btnOmitirOnce.disabled          = !hasSel;
+    if(btnBulkBl)              btnBulkBl.disabled              = !hasSel;
+    if(btnInicializarPersonas) btnInicializarPersonas.disabled = hasSel || rows === 0;
+    if(btnMarcarAlertas)       btnMarcarAlertas.disabled       = hasSel || alerts === 0;
+    if(btnAnonimizar)          btnAnonimizar.disabled          = hasSel || rows === 0;
+
+    const badge = $('alert-count-badge');
+    if(badge) badge.textContent = alerts;
+
     if(entCbAll){
-        entCbAll.indeterminate = checked.length > 0 && checked.length < all.length;
-        entCbAll.checked = all.length > 0 && checked.length === all.length;
+        entCbAll.indeterminate = sel > 0 && sel < allCbs;
+        entCbAll.checked       = allCbs > 0 && sel === allCbs;
     }
 }
 
 if(entCbAll) entCbAll.addEventListener('change', ()=>{
     document.querySelectorAll('#ent-tbody .ent-row-cb').forEach(cb => cb.checked = entCbAll.checked);
-    updateBulkBlBtn();
+    syncToolbarState();
 });
 
 entTbody.addEventListener('change', e=>{
-    if(e.target.classList.contains('ent-row-cb')) updateBulkBlBtn();
+    if(e.target.classList.contains('ent-row-cb')) syncToolbarState();
 });
 
+/*  Omitir esta vez  — quita las entidades seleccionadas solo de este análisis  */
+if(btnOmitirOnce) btnOmitirOnce.addEventListener('click', ()=>{
+    const rows = Array.from(document.querySelectorAll('#ent-tbody .ent-row-cb:checked'))
+        .map(cb => cb.closest('.entity-row')).filter(Boolean);
+    if(!rows.length) return;
+    let n = 0;
+    rows.forEach(row=>{
+        let variants=[];
+        try{ variants=JSON.parse(row.dataset.entityTexts||'[]').map(x=>(x||'').trim()).filter(Boolean); }catch{}
+        const label = row.dataset.label || '';
+        waEditor.querySelectorAll('.entity').forEach(s=>{
+            if(variants.includes(spanText(s).trim()) && (s.dataset.label||'')===label)
+                s.replaceWith(document.createTextNode(spanText(s)));
+        });
+        removeFromTable(variants[0]||'', label);
+        n++;
+    });
+    toast(`${n} entidad/es omitida/s en este análisis.`, 'i');
+    syncToolbarState();
+});
+
+/*  Marcar todas las alertas  — selecciona SOLO las filas de baja confianza  */
+if($('btn-marcar-alertas')) $('btn-marcar-alertas').addEventListener('click', ()=>{
+    let first=null;
+    document.querySelectorAll('#ent-tbody .entity-row').forEach(row=>{
+        const isAlert = row.dataset.alert === '1';
+        const cb = row.querySelector('.ent-row-cb');
+        if(cb) cb.checked = isAlert;
+        if(isAlert && !first) first = row;
+    });
+    syncToolbarState();
+    if(first){
+        let variants=[];
+        try{ variants=JSON.parse(first.dataset.entityTexts||'[]'); }catch{}
+        const spans=findSpans(variants);
+        if(spans.length){ scrollTo(spans[0]); flash(spans[0],variants); }
+    } else {
+        toast('No hay entidades marcadas como alerta.','i');
+    }
+});
+
+/*  Bulk Blacklist  — una sola request al endpoint batch  */
 if(btnBulkBl) btnBulkBl.addEventListener('click', async ()=>{
-    const checkedCbs = Array.from(document.querySelectorAll('#ent-tbody .ent-row-cb:checked'));
-    if(!checkedCbs.length) return;
-    const rows = checkedCbs.map(cb => cb.closest('.entity-row')).filter(Boolean);
+    const rows = Array.from(document.querySelectorAll('#ent-tbody .ent-row-cb:checked'))
+        .map(cb => cb.closest('.entity-row')).filter(Boolean);
+    if(!rows.length) return;
+
+    const items = rows.map(row=>{
+        let variants=[];
+        try{ variants=JSON.parse(row.dataset.entityTexts||'[]').map(x=>(x||'').trim()).filter(Boolean); }catch{}
+        const term = variants[0] || row.querySelector('.ej-link')?.textContent.trim() || '';
+        return { term, entity_type: row.dataset.label || null, _variants:variants, _label:row.dataset.label||'' };
+    }).filter(i=>i.term);
+    if(!items.length) return;
 
     btnBulkBl.disabled = true;
     btnBulkBl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando';
 
-    let added = 0;
-    const failedTerms = [];
-    for(const row of rows){
-        let variants = [];
-        try{ variants = JSON.parse(row.dataset.entityTexts||'[]').map(x=>(x||'').trim()).filter(Boolean); }catch{}
-        const eText  = variants[0] || row.querySelector('.ej-link')?.textContent.trim() || '';
-        const eLabel = row.dataset.label || '';
-        if(!eText){ failedTerms.push({ term:'(vacío)', reason:'Texto de entidad vacío' }); continue; }
-        try{
-            const r = await apiFetch('{{ route("pdf-analyzer.add-blacklist") }}', {term:eText, entity_type:eLabel||null});
-            let d = null;
-            try { d = await r.json(); } catch(parseErr) {
-                console.error('[Blacklist bulk] Respuesta no-JSON del servidor', r.status, eText);
-                failedTerms.push({ term: eText, reason: `Error del servidor (HTTP ${r.status})` });
-                continue;
-            }
-            if(!r.ok || !d.success){
-                const reason = d?.message || d?.errors ? Object.values(d?.errors||{})[0]?.[0] : null;
-                console.warn('[Blacklist bulk] Fallo al agregar:', eText, reason || r.status);
-                failedTerms.push({ term: eText, reason: reason || `HTTP ${r.status}` });
-                continue;
-            }
+    try{
+        const r = await apiFetch('{{ route("blacklist.add-bulk") }}', {
+            items: items.map(({term,entity_type})=>({term,entity_type}))
+        });
+        const d = await r.json();
+        if(!r.ok || !d.success) throw new Error(d?.message || `HTTP ${r.status}`);
+
+        items.forEach(({_variants,_label})=>{
             waEditor.querySelectorAll('.entity').forEach(s=>{
-                if(variants.includes(spanText(s).trim()) && (s.dataset.label||'')===eLabel)
+                if(_variants.includes(spanText(s).trim()) && (s.dataset.label||'')===_label)
                     s.replaceWith(document.createTextNode(spanText(s)));
             });
-            removeFromTable(eText, eLabel);
-            added++;
-        } catch(err){
-            console.error('[Blacklist bulk] Excepción al agregar:', eText, err);
-            failedTerms.push({ term: eText, reason: err.message || 'Error de red' });
-        }
+            removeFromTable(_variants[0]||'', _label);
+        });
+        toast(d.message, d.stats && d.stats.failed ? 'e' : 's');
+    } catch(err){
+        console.error('[Blacklist bulk]', err);
+        toast('No se pudieron agregar a la Blacklist: ' + (err.message||'error'), 'e');
+    } finally {
+        btnBulkBl.innerHTML = '<i class="fas fa-ban"></i> Agregar a la Blacklist';
+        syncToolbarState();
     }
-
-    if(added)             toast(`${added} entidad/es agregadas a la Blacklist.`, 's');
-    if(failedTerms.length){
-        const names = failedTerms.map(f => `"${f.term}"`).join(', ');
-        const reason = failedTerms.length === 1 ? ` — ${failedTerms[0].reason}` : '';
-        toast(`${failedTerms.length} entidad/es no pudieron agregarse: ${names}${reason}`, 'e');
-        console.error('[Blacklist bulk] Fallos detallados:', failedTerms);
-    }
-
-    btnBulkBl.disabled = false;
-    btnBulkBl.innerHTML = '<i class="fas fa-ban"></i> Agregar a Blacklist';
-    updateBulkBlBtn();
 });
 
 /*  Inicialar Personas  — escribe las iniciales en el campo etiqueta de cada fila PERSONA  */
@@ -1081,8 +1179,8 @@ if(btnInicializarPersonas) btnInicializarPersonas.addEventListener('click', asyn
 
     }catch(err){ toast(err.message,'e'); }
     finally{
-        btnInicializarPersonas.disabled = false;
         btnInicializarPersonas.innerHTML = '<i class="fas fa-id-badge"></i> Inicialar personas';
+        syncToolbarState();
     }
 });
 
@@ -1103,7 +1201,7 @@ function labelForSpan(span){
     for(const row of document.querySelectorAll('.entity-row')){
         try{ const v=JSON.parse(row.dataset.entityTexts||'[]'); if(v.map(x=>(x||'').trim()).includes(t)) return LMAP[row.dataset.label]||row.dataset.label||''; } catch{}
     }
-    const cm={person:'PERSONA',org:'ORGANIZACIÓN',location:'LUGAR',date:'FECHA',dni:'DNI',email:'EMAIL',phone:'TELÉFONO',misc:'OTRO'};
+    const cm={person:'PERSONA',org:'ORGANIZACIÓN',location:'LUGAR',date:'FECHA',dni:'DNI',email:'EMAIL',phone:'TELÉFONO',patente:'PATENTE',cuit:'CUIT',misc:'OTRO'};
     for(const [k,v] of Object.entries(cm)) if(span.classList.contains(k)) return v;
     return '';
 }
@@ -1272,7 +1370,11 @@ function removeFromTable(eText,eLabel){
         while(next&&!next.classList.contains('table-secondary')){ if(next.classList.contains('entity-row')){has=true;break;} next=next.nextElementSibling; }
         if(!has) sep.remove();
     });
-    if(removed>0) entCount.textContent=document.querySelectorAll('#ent-tbody .entity-row').length+' entidades';
+    if(removed>0){
+        entCount.textContent=document.querySelectorAll('#ent-tbody .entity-row').length+' entidades';
+        highlightAlertSpans();
+        syncToolbarState();
+    }
 }
 
 document.addEventListener('contextmenu',e=>{
@@ -1301,7 +1403,7 @@ document.addEventListener('contextmenu',e=>{
         ctx.querySelector('[data-a="bl2"]').addEventListener('click',async ev=>{
             ev.stopPropagation(); const btn=ev.currentTarget; btn.classList.add('loading'); btn.textContent=' Guardando';
             try{
-                const r=await apiFetch('{{ route("pdf-analyzer.add-blacklist") }}',{term:eText,entity_type:eLabel||null});
+                const r=await apiFetch('{{ route("blacklist.add") }}',{term:eText,entity_type:eLabel||null});
                 const d=await r.json(); if(!r.ok||!d.success) throw new Error(d.message||'Error');
                 waEditor.querySelectorAll('.entity').forEach(s=>{ if(variants.includes(spanText(s).trim())&&(s.dataset.label||'')===eLabel) s.replaceWith(document.createTextNode(spanText(s))); });
                 removeFromTable(eText,eLabel); toast(d.message,'s');
@@ -1376,7 +1478,7 @@ document.addEventListener('contextmenu',e=>{
 
                 // 4. Save to whitelist DB with the chosen entity type
                 try{
-                    const r=await apiFetch('{{ route("pdf-analyzer.add-whitelist") }}',{term:selText,entity_type:code});
+                    const r=await apiFetch('{{ route("whitelist.add") }}',{term:selText,entity_type:code});
                     const d=await r.json();
                     if(!r.ok||!d.success) throw new Error(d.message||'Error al guardar en whitelist');
                 } catch(wlErr){
@@ -1407,7 +1509,7 @@ document.addEventListener('contextmenu',e=>{
     ctx.querySelector('[data-a="bl2"]').addEventListener('click',async ev=>{
         ev.stopPropagation(); const btn=ev.currentTarget; btn.classList.add('loading'); btn.textContent=' Guardando';
         try{
-            const r=await apiFetch('{{ route("pdf-analyzer.add-blacklist") }}',{term:eText,entity_type:eLabel||null});
+            const r=await apiFetch('{{ route("blacklist.add") }}',{term:eText,entity_type:eLabel||null});
             const d=await r.json(); if(!r.ok||!d.success) throw new Error(d.message||'Error');
             waEditor.querySelectorAll('.entity').forEach(s=>{ if(spanText(s).trim()===eText&&(s.dataset.label||'')===eLabel) s.replaceWith(document.createTextNode(spanText(s))); });
             removeFromTable(eText,eLabel); toast(d.message,'s');
@@ -1416,9 +1518,10 @@ document.addEventListener('contextmenu',e=>{
     e.stopPropagation();
 });
 
-/*  Anonymize  */
+/*  Anonymize  — procesa TODAS las entidades de la tabla (la selección de
+    checkboxes se reserva para "Omitir esta vez" / "Agregar a la Blacklist")  */
 btnAnonimizar.addEventListener('click', async()=>{
-    const rows=Array.from(document.querySelectorAll('.entity-row'));
+    const rows=Array.from(document.querySelectorAll('#ent-tbody .entity-row'));
     if(!rows.length){ toast('No hay entidades para anonimizar.','e'); return; }
 
     const replacements={};
@@ -1476,7 +1579,7 @@ btnAnonimizar.addEventListener('click', async()=>{
             toast('Texto anonimizado correctamente.','s');
         }
     } catch(err){ toast(err.message,'e'); }
-    finally{ pgAnon.finish(); btnAnonimizar.disabled=false; btnAnonimizar.innerHTML='<i class="fas fa-shield-halved"></i> Anonimizar'; }
+    finally{ pgAnon.finish(); btnAnonimizar.innerHTML='<i class="fas fa-shield-halved"></i> Anonimizar'; syncToolbarState(); }
 });
 
 })();

@@ -18,6 +18,8 @@ class EntityConfigController extends Controller
         'DNI'     => ['label' => 'DNI',            'default' => '#e0e0e0'],
         'EMAIL'   => ['label' => 'Email',          'default' => '#ccf2ff'],
         'PHONE'   => ['label' => 'Teléfono',       'default' => '#ffffcc'],
+        'PATENTE' => ['label' => 'Patente',        'default' => '#f1c0e8'],
+        'CUIT'    => ['label' => 'CUIT',           'default' => '#d0f4de'],
         'MISC'    => ['label' => 'Otros',          'default' => '#e0ccff'],
     ];
 

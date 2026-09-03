@@ -14,6 +14,8 @@ class MenuItemsSeeder extends Seeder
         $items = [
             // ── Procesamiento de Texto ──────────────────────────────────────
             ['key' => 'herramientas_pdf', 'label' => 'Herramientas PDF',      'section' => 'Procesamiento de Texto', 'icon' => 'fas fa-file-pdf',    'route_name' => 'pdf-tools.index',        'route_pattern' => 'pdf-tools*',        'sort_order' => 15],
+            ['key' => 'pdf-tools-pro',    'label' => 'PDF Tools',             'section' => 'Procesamiento de Texto', 'icon' => 'fas fa-layer-group', 'route_name' => 'pdf-tools-pro.index',    'route_pattern' => 'pdf-tools-pro*',    'sort_order' => 16],
+            ['key' => 'convertir-docx',   'label' => 'Convertir a DocX',      'section' => 'Procesamiento de Texto', 'icon' => 'fas fa-file-export', 'route_name' => 'convertir-docx.index',   'route_pattern' => 'convertir-docx*',   'sort_order' => 18],
             ['key' => 'word-anonymizer',  'label' => 'Anonimizador',          'section' => 'Procesamiento de Texto', 'icon' => 'fas fa-file-word',   'route_name' => 'word-anonymizer.index',  'route_pattern' => 'word-anonymizer*',  'sort_order' => 20],
 
             // ── Smart Tools ─────────────────────────────────────────────────

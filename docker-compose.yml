@@ -58,6 +58,16 @@ services:
       WHISPER_SERVICE_URL: "${WHISPER_SERVICE_URL:-http://alfa_whisper:8002}"
 
       # ----------------------------------------------------------------
+      # Microservicio PDF (fusión de PDF — PDF Tools)
+      # ----------------------------------------------------------------
+      PDF_SERVICE_URL: "${PDF_SERVICE_URL:-http://alfa_pdf:8003}"
+
+      # ----------------------------------------------------------------
+      # Microservicio Converter (Convertir a DocX — LibreOffice headless)
+      # ----------------------------------------------------------------
+      CONVERTER_SERVICE_URL: "${CONVERTER_SERVICE_URL:-http://alfa_converter:8004}"
+
+      # ----------------------------------------------------------------
       # Opcache
       # ----------------------------------------------------------------
       PHP_OPCACHE_DEV: "${PHP_OPCACHE_DEV:-true}"
@@ -69,6 +79,8 @@ services:
     depends_on:
       - nlp
       - whisper
+      - pdf
+      - converter
       - postgres
 
   nlp:
@@ -120,6 +132,39 @@ services:
       MAX_FILE_SIZE_MB: "${MAX_FILE_SIZE_MB:-200}"
     volumes:
       - whisper_models:/root/.cache/whisper
+    networks:
+      - alfa_network
+
+  pdf:
+    build:
+      context: ./pdf_service
+      dockerfile: Dockerfile
+    image: alfa-pdf:latest
+    container_name: alfa_pdf
+    restart: unless-stopped
+    ports:
+      - "8003:8003"
+    environment:
+      MAX_FILE_SIZE_MB: "${PDF_MAX_FILE_SIZE_MB:-100}"
+      MAX_FILES: "${PDF_MAX_FILES:-30}"
+    networks:
+      - alfa_network
+
+  # ── Converter — conversión de documentos a .docx (LibreOffice headless) ─
+  converter:
+    build:
+      context: ./converter_service
+      dockerfile: Dockerfile
+    image: alfa-converter:latest
+    container_name: alfa_converter
+    restart: unless-stopped
+    ports:
+      - "8004:8004"
+    environment:
+      MAX_FILE_SIZE_MB: "${CONVERTER_MAX_FILE_SIZE_MB:-50}"
+      SOFFICE_TIMEOUT: "${CONVERTER_SOFFICE_TIMEOUT:-120}"
+    volumes:
+      - ./converter_service/main.py:/app/main.py:ro
     networks:
       - alfa_network
 

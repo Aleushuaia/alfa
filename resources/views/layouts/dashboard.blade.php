@@ -13,8 +13,10 @@
     </script>
 
     {{-- Favicon --}}
-    <link rel="icon" href="{{ alfa_asset('alfa.png') }}" sizes="100x100" type="image/png">
-    <link rel="apple-touch-icon" href="{{ alfa_asset('alfa.png') }}">
+    <link rel="icon" href="{{ alfa_asset('favicon.ico') }}" sizes="any">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ alfa_asset('images/favicon-32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ alfa_asset('images/favicon-16.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ alfa_asset('images/favicon-180.png') }}">
 
     {{-- Google Fonts --}}
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">

@@ -40,4 +40,14 @@ return [
         'url' => env('NLP_SERVICE_URL', 'http://localhost:8001'),
     ],
 
+    // Microservicio PDF (FastAPI + pypdf) — fusión de PDF en PDF Tools
+    'pdf' => [
+        'url' => env('PDF_SERVICE_URL', 'http://localhost:8003'),
+    ],
+
+    // Microservicio Converter (FastAPI + LibreOffice) — Convertir a DocX
+    'converter' => [
+        'url' => env('CONVERTER_SERVICE_URL', 'http://localhost:8004'),
+    ],
+
 ];

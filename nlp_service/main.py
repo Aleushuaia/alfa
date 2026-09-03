@@ -157,7 +157,11 @@ _JUDICIAL_NOISE_RAW: list[str] = [
     "senor", "senora", "senores", "don", "dona",
     "licenciado", "licenciada", "doctor", "doctora", "dr", "dra",
     # Abreviaturas
-    "art", "arts", "inc", "ley", "dec", "res", "cfr", "idem",
+    "art", "arts", "inc", "incs", "ley", "dec", "res", "cfr", "idem",
+    "ta", "ti", "tii", "tiii", "tiv", "tv",
+    "fs", "fojas", "fo", "cpr", "cpp", "cpccn", "cpc",
+    "cn", "cc", "ccyc", "lct", "ss", "sgtes", "sig", "sigtes",
+    "conf", "cit", "op", "cap", "expte", "exptes", "cuij",
     # Meses sueltos
     "enero", "febrero", "marzo", "abril", "mayo", "junio",
     "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
@@ -182,10 +186,25 @@ def is_noise_entity(ent: Any) -> bool:
 
     # Etiquetas numericas/temporales: solo filtrar por lista explicita
     if label in NUMERIC_LABELS:
-        return _norm(ent.text) in JUDICIAL_NOISE
+        return _norm(ent.text).rstrip(".") in JUDICIAL_NOISE
+
+    # 0. Reglas de forma para etiquetas de "nombre" (nunca aplican a DNI/EMAIL/
+    #    PHONE/PATENTE/CUIT ni a NUMERIC_LABELS). Atacan el ruido tipico:
+    #    abreviaturas de una letra, ordinales "Tª/1º", romanos "TII", siglas.
+    _NAME_LABELS = ("PER", "PERSON", "ORG", "LOC", "GPE", "MISC")
+    if label in _NAME_LABELS:
+        _txt = ent.text.strip()
+        if len(_txt) < 3:
+            return True
+        if "ª" in _txt or "º" in _txt or "°" in _txt:
+            return True
+        if len(_txt) <= 5 and (
+            re.fullmatch(r"[IVXLCDM]+", _txt) or re.fullmatch(r"T[IVXLCDM]+", _txt, re.I)
+        ):
+            return True
 
     # 1. Lista negra explicita
-    if _norm(ent.text) in JUDICIAL_NOISE:
+    if _norm(ent.text).rstrip(".") in JUDICIAL_NOISE:
         return True
 
     tokens = list(ent)
@@ -222,14 +241,35 @@ def is_noise_entity(ent: Any) -> bool:
 
 # Patrones regex adicionales: (class, label, pattern)
 REGEX_PATTERNS: list[tuple[str, str, re.Pattern]] = [
-    ("dni",   "DNI",     re.compile(r"\b\d{7,8}\b")),
-    ("email", "EMAIL",   re.compile(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}")),
-    ("phone", "PHONE",   re.compile(r"\+?\d[\d\s\-]{7,14}\d")),
-    ("misc",  "PATENTE", re.compile(r"\b[A-Z]{2,3}\d{3}[A-Z]{2}\b")),
+    # CUIT/CUIL antes que DNI para que gane el match mas largo en remove_overlaps.
+    ("cuit",    "CUIT",  re.compile(r"\b(?:20|23|24|27|30|33|34)[\s\-]?\d{8}[\s\-]?\d\b")),
+    ("dni",     "DNI",   re.compile(r"\b\d{1,3}(?:\.\d{3}){2}\b")),   # 28.456.789
+    ("dni",     "DNI",   re.compile(r"\b\d{7,8}\b")),
+    ("email",   "EMAIL", re.compile(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}")),
+    ("phone",   "PHONE", re.compile(r"\+?\d[\d\s\-]{7,14}\d")),
+    # Patentes argentinas: Mercosur (auto/moto) y viejas (auto/moto).
+    ("patente", "PATENTE", re.compile(r"\b[A-Z]{2}[\s\-]?\d{3}[\s\-]?[A-Z]{2}\b")),
+    ("patente", "PATENTE", re.compile(r"\b[A-Z][\s\-]?\d{3}[\s\-]?[A-Z]{3}\b")),
+    ("patente", "PATENTE", re.compile(r"\b[A-Z]{3}[\s\-]?\d{3}\b")),
+    ("patente", "PATENTE", re.compile(r"\b\d{3}[\s\-]?[A-Z]{3}\b")),
 ]
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
+# Prefijos de 3 letras que casi siempre son citas normativas, no patentes viejas
+# ("LEY 264", "RES 118", "DEC 321", "ART 176", "EXP 450").
+_PLATE_FALSE_PREFIXES: frozenset[str] = frozenset({
+    "LEY", "RES", "DEC", "ART", "INC", "EXP", "NRO", "NUM", "REF", "FOJ",
+    "TOM", "VOL", "CAP", "TIT", "PAG", "ACT", "OFI", "MEM", "NOT",
+})
+
+
+def _is_legal_citation_not_plate(match_text: str) -> bool:
+    """True si un match de PATENTE 'vieja' (LLL NNN) es en realidad una cita legal."""
+    letters = re.sub(r"[^A-Za-z]", "", match_text).upper()
+    return len(letters) == 3 and letters in _PLATE_FALSE_PREFIXES
+
 
 def _span_tag(text: str, css_class: str, label: str) -> str:
     """Envuelve texto en un <span> con la clase de entidad."""
@@ -264,6 +304,9 @@ def build_annotated_html(text: str, spans: list[dict[str, Any]]) -> str:
 # Prioridad de tipos de entidad: menor número = mayor prioridad.
 # PER siempre gana sobre MISC cuando hay solapamiento.
 _LABEL_PRIORITY: dict[str, int] = {
+    # CUIT / PATENTE con formato estricto ganan incluso sobre un PER que spaCy
+    # haya adivinado sobre el mismo texto (ej: "AB123CD").
+    "CUIT": 1, "PATENTE": 1,
     "PER": 1, "PERSON": 1,
     "DNI": 2, "EMAIL": 2, "PHONE": 2,
     "ORG": 3, "LOC": 3, "GPE": 3,
@@ -278,11 +321,13 @@ def remove_overlaps(spans: list[dict[str, Any]]) -> list[dict[str, Any]]:
     if not spans:
         return []
 
-    # Ordenar: primero por prioridad de tipo (menor = gana), luego por longitud desc
+    # Ordenar: prioridad de tipo (menor = gana) → origen (regex gana a spacy en
+    # empate) → posición → longitud (más largo gana).
     def _sort_key(s: dict) -> tuple:
         priority = _LABEL_PRIORITY.get(s.get("label", ""), 5)
-        length = -(s["end"] - s["start"])  # negativo: más largo gana si mismo tipo
-        return (priority, s["start"], length)
+        source_rank = 0 if s.get("source") == "regex" else 1
+        length = -(s["end"] - s["start"])
+        return (priority, source_rank, s["start"], length)
 
     sorted_spans = sorted(spans, key=_sort_key)
 
@@ -345,6 +390,8 @@ def analyze(req: AnalyzeRequest) -> AnalyzeResponse:
     # 2. Entidades por regex
     for css, label, pattern in REGEX_PATTERNS:
         for m in pattern.finditer(text):
+            if label == "PATENTE" and _is_legal_citation_not_plate(m.group()):
+                continue
             raw_spans.append({
                 "start":  m.start(),
                 "end":    m.end(),

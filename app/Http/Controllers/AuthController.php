@@ -11,7 +11,7 @@ class AuthController extends Controller
     public function showLogin()
     {
         if (Auth::check()) {
-            return redirect()->route('pdf-analyzer.form');
+            return redirect()->route('word-anonymizer.index');
         }
 
         return view('auth.login');
@@ -35,7 +35,7 @@ class AuthController extends Controller
             $request->session()->regenerate();
             app(UnidadActivaService::class)->initAfterLogin($user);
 
-            return redirect()->intended(route('pdf-analyzer.form'));
+            return redirect()->intended(route('word-anonymizer.index'));
         }
 
         // ── Modo normal ────────────────────────────────────────────────────────
@@ -49,7 +49,7 @@ class AuthController extends Controller
         if (Auth::attempt($credentials, $remember)) {
             $request->session()->regenerate();
             app(UnidadActivaService::class)->initAfterLogin(Auth::user());
-            return redirect()->intended(route('pdf-analyzer.form'));
+            return redirect()->intended(route('word-anonymizer.index'));
         }
 
         return back()->withErrors([

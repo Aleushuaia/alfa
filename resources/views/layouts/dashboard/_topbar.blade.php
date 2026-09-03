@@ -47,7 +47,7 @@
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
                 <li class="breadcrumb-item">
-                    <a href="{{ route('pdf-analyzer.form') }}"
+                    <a href="{{ route('word-anonymizer.index') }}"
                        class="text-decoration-none"
                        style="color:var(--accent)">Inicio</a>
                 </li>
